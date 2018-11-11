@@ -189,10 +189,14 @@ func do_cmd(body []byte) {
             fmt.Printf("Rec: %s\n", record)
             postFile(record.([]interface{})[0].(string), u.String())
         } else if cmd == "upload" {
-            fmt.Printf("Uploading\n")
-            file_url := record.([]interface{})[0].(string)
+            fmt.Printf("Fulfilling cmd: Upload\n")
+            //file_url := record.([]interface{})[0].(string)
+            file_url := record.(string)
             u, _ := url.Parse(file_url)
             fmt.Printf("Path: %s", u.Path)
+            if u.Path == "/" {
+                u.Path = "/tmp"
+            }
             filename := path.Base(u.Path)
             wd, _ := os.Getwd()
             filename = filepath.Join(wd, filename)
