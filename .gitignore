@@ -1,3 +1,5 @@
 */*.swp
 */*.pem
 */*.log
+pytrash/static/
+pytrash/static/*
