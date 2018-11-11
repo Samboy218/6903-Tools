@@ -346,8 +346,8 @@ def do(cmd):
                 print("In Static {}".format(path))
             elif not in_directory(arr[1], SETTINGS['static_dir']):
                 path = os.path.join(SETTINGS['static_dir'], bn)
-                print("Copying {} to {}".format(arr[1], path))
-                shutil.copy(arr[1], path)
+                print("Copying {} to {}".format(os.path.expanduser(arr[1]), path))
+                shutil.copy(os.path.expanduser(arr[1]), path)
                 
             else:
                 print("In default {}".format(path))
