@@ -10,6 +10,7 @@ import logging
 import json
 from io import BytesIO
 
+import subprocess
 
 import libtmux
 
@@ -41,14 +42,21 @@ SETTINGS = {
 "exfil_dir":"/root/exfil/",
 "static_dir":"static/",
 "shell_dir":"shell/",
+"tmux_welcome":"tmux_welcome.sh",
 "LHOST":None,
 "LPORT":None,
+"RHOST":None,
 "target":None,
-"vars":["target", "LHOST", "LPORT"],
+"vars":["target", "LHOST", "LPORT", "RHOST"],
 "protocol":"https",
 "static_url":None,
 "session_count":0
 }
+
+# identifier:{message:"", default:""};
+force_prompt = {}
+
+managed_sessions = []
 
 targets = []
 
@@ -292,9 +300,11 @@ def get_prompt(target_info):
         ]
     return message
 
-def prompt(async_=False):
+def prompt(async_=False, msg=None):
     target_info = target_info_all.get(SETTINGS['target'], None)
-    return sess.prompt(get_prompt(target_info), style=style, async_=async_)
+    if msg is None:
+        msg = get_prompt(target_info)
+    return sess.prompt(msg, style=style, async_=async_)
 
 def load_module(filename):
     try:
@@ -312,28 +322,47 @@ def load_module(filename):
 
 
 def get_session_name(host):
-    name = "({})_{}".format(SETTINGS["session_count"], host.replace(".", "-"))
-    SETTINGS["session_count"] = SETTINGS["session_count"] + 1
+    while True:
+        name = "({})_{}".format(SETTINGS["session_count"], host.replace(".", "-"))
+        SETTINGS["session_count"] = SETTINGS["session_count"] + 1
+        if not tmux.has_session(name):
+            break
     return name
 
-def new_session(name, window_cmd=None):
+def new_session(name, window_cmd=None, keys=None, keys_script=None):
     print("Creating new session with name: {}".format(name))
-    tmux.new_session(name, window_command=window_cmd)
-    tmux.list_sessions()
-    print("To interact: attach {}".format(name))
+    s = tmux.new_session(name, window_command=window_cmd)
+    if keys_script:
+        res = subprocess.run(keys_script, stdout=subprocess.PIPE)
+        keys = res.stdout.decode("utf-8")
+
+    if keys:
+        s.attached_pane.send_keys(keys)
+
+    managed_sessions.append(name)
+    #print_sessions()
+    sess = tmux.find_where({ "session_name": name })
+    if sess:
+        i = dict(sess.items())["session_id"]
+        print("\nTo interact: {}".format(i))
+    else:
+        print("Failed to create tmux session")
 
 # Warning: Linux specific, requires iptables and tmux
 def handle_shell(host):
     #global tmux
     #iptables -t nat -A PREROUTING -p tcp -s {LHOST} --dport {LPORT} -j REDIRECT --to-port {HANDLE_PORT}
     real_port = get_open_port()
-    iptables = "iptables -t nat -{CMD} PREROUTING -p tcp -s {RHOST} --dport {LPORT} -j REDIRECT --to-port {REAL_PORT}"
+    src = ""
+    if host != "0.0.0.0/0":
+        src = "-s {RHOST} ".format(RHOST=host)
+    iptables = "iptables -t nat -{CMD} PREROUTING -p tcp {src}--dport {LPORT} -j REDIRECT --to-port {REAL_PORT}"
     
-    handler_cmd = iptables.format(CMD="A", RHOST=host, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port)
+    handler_cmd = iptables.format(CMD="A", src=src, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port)
     handler_cmd += "; "
     handler_cmd += "nc -nvlp {REAL_PORT}".format(REAL_PORT=real_port)
     handler_cmd += "; "
-    handler_cmd += iptables.format(CMD="D", RHOST=host, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port)
+    handler_cmd += iptables.format(CMD="D", src=src, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port)
     print("Handler: \n{0}\n{1}\n{0}\n".format("-"*(len(handler_cmd) + 3) , handler_cmd))
     new_session(get_session_name(host), window_cmd=handler_cmd)
 
@@ -346,12 +375,22 @@ def in_directory(file, directory):
     #e.g. /a/b/c/d.rst and directory is /a/b, the common prefix is /a/b
     return os.path.commonprefix([file, directory]) == directory
 
+def options():
+    for s in SETTINGS["vars"]:
+        print("{0: <10}:{1}".format(s, SETTINGS[s]))
+
 def do(cmd):
+    global managed_sessions
     #global tmux
     try:
+        arr = []
+        if force_prompt:
+            arr = [list(force_prompt)[0], cmd]
+            print(" ".join(arr))
+        else:    
+            arr = shlex.split(cmd)
         if not cmd:
             return
-        arr = shlex.split(cmd)
         c = arr[0]
         if c == "set":
             set(arr[1], arr[2] if len(arr) > 2 else None)
@@ -360,11 +399,13 @@ def do(cmd):
                 show(arr[1])
             else:
                 show(c)
+        elif c == "options" or c == 'show' and len(arr) > 1 and arr[1] == "options":
+            options()
         elif c == "host-shell":
             #print("Dropping to bash on host -- use 'exit' to return here")
             #pty.spawn("/bin/bash")
             #new_session(get_session_name("127.0.0.1"), window_cmd="echo 'To return: CTRL+B,D'")
-            new_session(get_session_name("127.0.0.1"))
+            new_session(get_session_name("127.0.0.1"), keys_script=SETTINGS['tmux_welcome'])
         elif c == 'clear':
             prompt_toolkit.shortcuts.clear()
         elif c == "load_module":
@@ -405,9 +446,10 @@ def do(cmd):
                 else:
                     url = os.path.join(SETTINGS['static_url'], url_path)
                     print("File ready at {}".format(url))
+            
             if SETTINGS["target"]:
                 task(SETTINGS["target"], c, url)
-            else:
+            elif not force_prompt:
                 print('Set a target - try "show targets"')
         elif c == 'shell':
             if len(arr) > 1 and os.path.exists(compute_path(arr[1], dir=SETTINGS['shell_dir'])):
@@ -434,17 +476,48 @@ def do(cmd):
                         p = os.path.join(root, f)
                         p = p[len(os.path.commonprefix([SETTINGS['shell_dir'], p])):]
                         print(p)
-               
+        elif c == 'catch':
+            rhost = arr[1]
+            handle_shell(rhost)
+        elif c == 'listen':
+            rhost = first([SETTINGS["RHOST"], SETTINGS["target"], "0.0.0.0/0"])
+            message = "Please set RHOST for the expected connection [{}]:".format(rhost)
+            inner_prompt("catch", message, rhost)
         elif c == 'attach':
             tmux.attach_session(arr[1])         
+        elif c.startswith("$") and c[1:].isdigit() and len(arr) == 1:
+            tmux.attach_session(cmd)         
+        elif c == 'sessions' and len(arr) > 1 and arr[1] == "-i":
+            tmux.attach_session(arr[2])     
         elif c == 'sessions':
-            for s in tmux.list_sessions():
-                print(s)
+            print_sessions()
+        elif c == 'kill_tmux':
+            tmux.kill_server()
+        elif c =="kill_sessions":
+            if arr[1].upper() == "Y":
+                kill_tmux_sessions(managed_sessions)
+            else:
+                print("Aborted")
+            if force_prompt:
+                os._exit(0)
         elif c == "exit":
             print("Killing the server...")
             #sys.exit(1)
-            tmux.kill_server()
-            os._exit(1)
+            # ULTRA DANGER - WILL KILL TMUX globally
+            #tmux.kill_server()
+
+            managed_sessions = [s for s in managed_sessions if tmux.has_session(s)]
+            if managed_sessions:
+                print_sessions()
+                if len(arr) > 1 and arr[1].lower() == "-y":
+                    kill_tmux_sessions(managed_sessions)
+                    os._exit(0)
+                else:
+                    msg = "Managed tmux sessions are still open. Kill them? [Y/n]:"
+                    default = "Y"
+                    inner_prompt("kill_sessions", msg, default)
+            else:
+                os._exit(0)
         else:
             if not SETTINGS["target"]:
                 print('Set a target - try "show targets"')
@@ -452,6 +525,29 @@ def do(cmd):
                 task(SETTINGS["target"], c, arr[1:])
     except Exception as e:
         print(e)
+
+
+def inner_prompt(key, message, default):
+    force_prompt[key]={"message":message, "default":default}
+
+def kill_tmux_sessions(sessions):
+    print("Killing Tmux Sessions...")
+    for s in sessions:
+        try:
+            tmux.kill_session(s)
+        except Exception as e:
+            print(e)
+
+def print_sessions():
+    print("{0: <5}{1}".format("ID", "Name"))
+    for s in tmux.list_sessions():
+        items = dict(s.items())
+        managed = items["session_name"] in managed_sessions
+        print("{0: <5}{1: <10}{2}".format(items["session_id"], items["session_name"], "(unmanaged)" if not managed else ""))
+    
+
+def first(l):
+    return next((x for x in l if x is not None), None)
 
 def make_opt(n, opt):
     return ('class:choice', "{: <4}{}\n".format("{})".format(n), opt))
@@ -473,15 +569,26 @@ def get_srv_ip():
         except Exception as e:
             print("Invalid selection")
 
-def get_shell_port():
-    default = 80
+def get_choice(msg, default):
     message = [
-        ("class:choice", "Please set LPORT for shells\nNote: this should A) be allowed by egress filtering and B) not be used actively used [{}]:".format(default))
+        ("class:choice", msg)
     ]
-    choice = prompt_toolkit.prompt(message, style=style)
+    #choice = prompt_toolkit.prompt(message, style=style)
+    choice = prompt(msg=message)
+
     if not choice:
         choice = default
     return choice
+
+def purge_nat():
+    choice = get_choice("Purge the NAT Routing table? (Necessary if the server has crashed): [Y/n]", "Y")
+    if choice.upper() == "Y":
+        os.system("iptables -F -t nat")
+
+def get_shell_port():
+    default = 80
+    message = "Please set LPORT for shells\nNote: this should A) be allowed by egress filtering and B) not be used actively used [{}]:".format(default)
+    return get_choice(message, default)
 
 def get_srv_port(ip):
     default = "443"
@@ -532,8 +639,6 @@ def get_open_port():
     return port
 
 
-
-
 # if the user set an absolute path, use that, otherwise default to relative to install dir
 def compute_path(path, dir=None):
     if dir is None:
@@ -545,25 +650,55 @@ def compute_path(path, dir=None):
 
 async def get_input():
     global curr_prompt
+    global force_prompt
     dbg = 3
     while True:
-        future = prompt(async_=True)
+        msg = None
+        key = None
+        if force_prompt:
+            #print(force_prompt)
+            try:
+                key = list(force_prompt)[0]
+                #print("Key: {}".format(key))
+                #choice = get_choice(force_prompt[key].get('message', ""), force_prompt[key].get('default', ""))
+                msg = force_prompt[key].get('message', "")
+                #print(force_prompt)
+            except Exception as e:
+                print(e)
+
+        future = prompt(async_=True, msg=msg)
         #print("future: {}".format(future))
         #curr_prompt = future.to_asyncio_future()
         curr_prompt = future
         #print("prompt: {}".format(curr_prompt))
+        #print(force_prompt)
+        res = None
         with patch_stdout():
+            #print(force_prompt)
             try:
                 res = await future
-                #print("await returned")
-                do(res)
                 #print("do({}) returned".format(res))
             except Exception as e:
-                print("exception raised: {}".format(e))
+                print("Exception raised during prompt: {}".format(e))
                 print(str(e))
                 print(e.args)
                 print(type(e).__name__)
-                pass
+
+        try:
+            #print("Res: {}".format(res))
+            #print("Key: {}".format(key))
+            if force_prompt:
+                if not res:
+                    res = force_prompt[key].get('default', "")
+            #print("await returned")
+            #print("\nCMD:{}".format(res))
+            do(res)
+            if key: 
+                #print("Deleting {} from {}".format(key, force_prompt))
+                del force_prompt[key]
+
+        except Exception as e:
+            print("Exception raised after prompt: {}".format(e))
 
         #if dbg <= 0:
         #    os._exit(1)
@@ -584,7 +719,7 @@ if __name__=="__main__":
     SETTINGS['LPORT'] = str(get_shell_port())
 
 
-    for d in ['static_dir', 'shell_dir']:
+    for d in ['static_dir', 'shell_dir', 'tmux_welcome']:
         SETTINGS[d] = compute_path(SETTINGS[d])
 
     try:
@@ -592,8 +727,10 @@ if __name__=="__main__":
     except Exception as e:
         pass
     print("Static URL: {} serves {}".format(SETTINGS['static_url'], SETTINGS['static_dir']))
-   
-    new_session(get_session_name("127.0.0.1"))
+  
+    new_session(get_session_name("127.0.0.1"), keys_script=SETTINGS['tmux_welcome'])
+
+    purge_nat()
 
     prompt_toolkit.eventloop.defaults.use_asyncio_event_loop() 
 
