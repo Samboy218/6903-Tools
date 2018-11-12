@@ -311,6 +311,17 @@ def load_module(filename):
         print(e)
 
 
+def get_session_name(host):
+    name = "({})_{}".format(SETTINGS["session_count"], host.replace(".", "-"))
+    SETTINGS["session_count"] = SETTINGS["session_count"] + 1
+    return name
+
+def new_session(name, window_cmd=None):
+    print("Creating new session with name: {}".format(name))
+    tmux.new_session(name, window_command=window_cmd)
+    tmux.list_sessions()
+    print("To interact: attach {}".format(name))
+
 # Warning: Linux specific, requires iptables and tmux
 def handle_shell(host):
     #global tmux
@@ -324,11 +335,7 @@ def handle_shell(host):
     handler_cmd += "; "
     handler_cmd += iptables.format(CMD="D", RHOST=host, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port)
     print("Handler: \n{0}\n{1}\n{0}\n".format("-"*(len(handler_cmd) + 3) , handler_cmd))
-    name = "({})_{}".format(SETTINGS["session_count"], host.replace(".", "-"))
-    tmux.new_session(name, window_command=handler_cmd)
-    tmux.list_sessions()
-    print("To interact: attach {}".format(name))
-    SETTINGS["session_count"] = SETTINGS["session_count"] + 1
+    new_session(get_session_name(host), window_cmd=handler_cmd)
 
 def in_directory(file, directory):
     #make both absolute    
@@ -354,8 +361,10 @@ def do(cmd):
             else:
                 show(c)
         elif c == "host-shell":
-            print("Dropping to bash on host -- use 'exit' to return here")
-            pty.spawn("/bin/bash")
+            #print("Dropping to bash on host -- use 'exit' to return here")
+            #pty.spawn("/bin/bash")
+            #new_session(get_session_name("127.0.0.1"), window_cmd="echo 'To return: CTRL+B,D'")
+            new_session(get_session_name("127.0.0.1"))
         elif c == 'clear':
             prompt_toolkit.shortcuts.clear()
         elif c == "load_module":
@@ -583,6 +592,8 @@ if __name__=="__main__":
     except Exception as e:
         pass
     print("Static URL: {} serves {}".format(SETTINGS['static_url'], SETTINGS['static_dir']))
+   
+    new_session(get_session_name("127.0.0.1"))
 
     prompt_toolkit.eventloop.defaults.use_asyncio_event_loop() 
 
