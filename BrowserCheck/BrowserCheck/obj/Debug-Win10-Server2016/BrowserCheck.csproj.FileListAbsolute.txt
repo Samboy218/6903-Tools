@@ -1,0 +1,10 @@
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\bin\Build-Win10-Server2016\SystemCheck.exe.config
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\bin\Build-Win10-Server2016\SystemCheck.exe
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\bin\Build-Win10-Server2016\SystemCheck.pdb
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug-Win10-Server2016\BrowserCheck.csprojAssemblyReference.cache
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug-Win10-Server2016\BrowserCheck.Form1.resources
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug-Win10-Server2016\BrowserCheck.Properties.Resources.resources
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug-Win10-Server2016\BrowserCheck.csproj.GenerateResource.cache
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug-Win10-Server2016\BrowserCheck.csproj.CoreCompileInputs.cache
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug-Win10-Server2016\SystemCheck.exe
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug-Win10-Server2016\SystemCheck.pdb

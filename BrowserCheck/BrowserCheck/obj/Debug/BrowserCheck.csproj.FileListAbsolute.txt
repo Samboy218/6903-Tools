@@ -1,0 +1,17 @@
+c:\users\user\documents\visual studio 2013\Projects\BrowserCheck\BrowserCheck\bin\Debug\BrowserCheck.exe
+c:\users\user\documents\visual studio 2013\Projects\BrowserCheck\BrowserCheck\bin\Debug\BrowserCheck.pdb
+c:\users\user\documents\visual studio 2013\Projects\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.Properties.Resources.resources
+c:\users\user\documents\visual studio 2013\Projects\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.csproj.GenerateResource.Cache
+c:\users\user\documents\visual studio 2013\Projects\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.exe
+c:\users\user\documents\visual studio 2013\Projects\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.pdb
+c:\users\user\documents\visual studio 2013\Projects\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.Form1.resources
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\bin\Debug\SystemCheck.exe
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\bin\Debug\SystemCheck.pdb
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.csprojAssemblyReference.cache
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.Form1.resources
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.Properties.Resources.resources
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.csproj.GenerateResource.cache
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.csproj.CoreCompileInputs.cache
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug\SystemCheck.exe
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\obj\Debug\SystemCheck.pdb
+C:\Users\user\Documents\BrowserCheck\BrowserCheck\bin\Debug\SystemCheck.exe.config
