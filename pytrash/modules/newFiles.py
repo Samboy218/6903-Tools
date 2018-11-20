@@ -2,6 +2,7 @@
 #only works on linux right now
 SETTINGS["newFilesTimestamp"] = 0
 def newFiles(start="/"):
+    send_msg("newFiles", "checking {} for new shit".format(start))
     output = []
     for root, dirs, files in os.walk(start):
         for name in files:
