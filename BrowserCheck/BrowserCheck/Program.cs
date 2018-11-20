@@ -15,7 +15,11 @@ namespace BrowserCheck
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            Form1 f = new Form1();
+            //disable the minimize and maximize buttons
+            f.MinimizeBox = false;
+            f.MaximizeBox = false;
+            Application.Run(f);
         }
     }
 }
