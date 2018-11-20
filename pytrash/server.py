@@ -395,14 +395,19 @@ def target_to_host(target):
 # client said "shell_ACK"
 
 # Warning: Linux specific, requires iptables and tmux
-def handle_shell(target):
+def handle_shell(target, catch=False):
     host = target_to_host(target)
     #global tmux
     res = iptables_redirect(host)
 
     listener = get_listener_cmd(res["port"])
     # Race conditions just make your code go faster, right?
-    handler_cmd = res["add"] + listener + res["delfix"]
+    # DANGER: will not work correctly if using "catch"
+    handler_cmd = res["add"] + listener
+    if catch:
+        handler_cmd = handler_cmd + res["del"]
+    else:
+        handler_cmd = handler_cmd + res["delfix"]
 
     print("Handler: \n{0}\n{1}\n{0}\n".format("-"*(len(handler_cmd) + 3) , handler_cmd))
     new_session(get_session_name(host), window_cmd=handler_cmd)
@@ -549,7 +554,7 @@ def do(cmd):
             
         elif c == 'catch':
             rhost = arr[1]
-            handle_shell(rhost)
+            handle_shell(rhost, catch=True)
         elif c == 'listen':
             rhost = first([SETTINGS["RHOST"], SETTINGS["target"], "0.0.0.0/0"])
             message = "Please set RHOST for the expected connection [{}]:".format(rhost)

