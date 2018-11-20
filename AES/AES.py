@@ -124,6 +124,7 @@ def Decrypt(cts_hex, key):
 	
 	#strip the payload, and reassemble the message!
 	calc_message = strip_payload(calc_pts)
+	calc_message = calc_message.encode('ascii', 'ignore')
 	return calc_message
 	
 	
