@@ -25,5 +25,5 @@ def newFiles(start="/"):
             if mask:
                 output.append("["+str(mask)+"]" + f)
     SETTINGS["newFilesTimestamp"] = time.time()
-    send_msg("newFiles", "\n".join(output))
+    send_msg("newFiles", ("\n".join(output)).encode('ascii', 'ignore').decode('ascii'))
     return
