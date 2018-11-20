@@ -7,6 +7,7 @@ except:
         import Image
     except:
         print("ahh im dying")
+        exit()
 
 
 def tryScreenGrab():
