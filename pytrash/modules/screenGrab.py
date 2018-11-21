@@ -3,7 +3,7 @@ try:
     import Image
 except:
     try:
-        os.system("pip install Image")
+        os.system("pip install PIL")
         import Image
     except:
         print("ahh im dying")
