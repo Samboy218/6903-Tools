@@ -1,12 +1,19 @@
 
 try:
-    import Image
+    import Image as i
 except:
     try:
         os.system("pip install Image")
-        import Image
+        import Image as i
     except:
-        print("ahh im dying")
+        try:
+            import image as i
+        except:
+            try:
+                os.system("pip install Image")
+                import image as i
+            except:
+                print("ahh im dying")
 
 
 def tryScreenGrab():
@@ -80,7 +87,7 @@ def gtkScreenGrab():
         return False
     else:
         width, height = pb.get_width(), pb.get_height()
-        return Image.fromstring("RGB", (width, height), pb.get_pixels() )
+        return i.fromstring("RGB", (width, height), pb.get_pixels() )
 
 def qtScreenGrab():
     import PyQt4
@@ -96,7 +103,7 @@ def qtScreenGrab():
     buffer.close()
     del app
     strio.seek(0)
-    return Image.open(strio)
+    return i.open(strio)
 
 def wxScreenGrab():
     import wx
@@ -108,7 +115,7 @@ def wxScreenGrab():
     mem.Blit(0, 0, size[0], size[1], screen, 0, 0)
     del mem
     myWxImage = wx.ImageFromBitmap(myBitmap)
-    PilImage = Image.new('RGB', (myWxImage.GetWidth(), myWxImage.GetHeight()) )
+    PilImage = i.new('RGB', (myWxImage.GetWidth(), myWxImage.GetHeight()) )
     PilImage.fromstring(myWxImage.GetData() )
     return PilImage
 
