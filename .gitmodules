@@ -1,0 +1,3 @@
+[submodule "switchblade"]
+	path = c2trash/plugins/switchblade
+	url = http://github.com/Gin-and-Miskatonic/switchblade

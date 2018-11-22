@@ -42,6 +42,11 @@ SETTINGS = {
 "exfil_dir":"/root/exfil/",
 "static_dir":"static/",
 "shell_dir":"shell/",
+"plugin_dir":"plugins/",
+#"default_shell_handler":"nc -nvlp {REAL_PORT};",
+#"default_shell_plugin":"False",
+"default_shell_handler":"switchblade/switchblade.py -p {REAL_PORT};",
+"default_shell_plugin":"True",
 "tmux_welcome":"tmux_welcome.sh",
 "LHOST":None,
 "LPORT":None,
@@ -386,7 +391,18 @@ def iptables_redirect(host):
 
 
 def get_listener_cmd(port):
-    return "nc -nvlp {REAL_PORT};".format(REAL_PORT=port)
+    cmd = SETTINGS["default_shell_handler"].format(REAL_PORT=port)
+    if SETTINGS["default_shell_plugin"] == "True":
+        prog = cmd.split(" ")[0]
+        prog = compute_path(cmd.split(" ")[0], SETTINGS["plugin_dir"])
+        if " " in cmd:
+            cmd = "{} {}".format(prog , " ".join(cmd.split(" ")[1:]))
+        else:
+            cmd = prog + cmd
+            
+    print (cmd)
+    return cmd
+    #return "nc -nvlp {REAL_PORT};".format(REAL_PORT=port)
 
 # eventually: targets will be guaranteed unique, hosts (ip address) might not be
 def target_to_host(target):
@@ -412,7 +428,7 @@ def handle_shell(target, catch=False):
     print("Handler: \n{0}\n{1}\n{0}\n".format("-"*(len(handler_cmd) + 3) , handler_cmd))
     new_session(get_session_name(host), window_cmd=handler_cmd)
     FIN_WAIT[target]["cmd"] = res["del"]+res["fix"]
-
+    time.sleep(2)
     send_shell(target, FIN_WAIT[target]["shell"])
 
 
