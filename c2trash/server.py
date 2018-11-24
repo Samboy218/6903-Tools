@@ -299,13 +299,15 @@ def show(k):
     else:
         print("{} not set".format(k))
 
-def read_attr(d, attr):
-    res = d.get(attr, None)
+def read_attr(d, attr, default='?'):
+    res = d.get(attr, default)
     if type(res) is list:
         if len(res) > 0:
             res = res[0]
         else:
-            res=None
+            res=default
+    if res is None:
+        res=default
     return res
         
 
@@ -318,7 +320,7 @@ def get_prompt(target_info):
             ('class:hostname',     read_attr(target_info, 'hostname')),
             ('class:ip',     "({})".format(read_attr(target_info, 'ip'))),
             ('class:colon',    ':'),
-            ('class:path',     read_attr(target_info, 'cwd')),
+            ('class:path',     read_attr(target_info, 'cwd') ),
             message[0]
         ]
     return message
