@@ -1,3 +1,6 @@
 [submodule "switchblade"]
 	path = c2trash/plugins/switchblade
 	url = http://github.com/Gin-and-Miskatonic/switchblade
+[submodule "c2trash/plugins/mpc"]
+	path = c2trash/plugins/metasploit/mpc
+	url = https://github.com/g0tmi1k/mpc

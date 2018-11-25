@@ -106,6 +106,14 @@ def execute(cmd):
     thread = Thread(target = _execute, args = (cmd,) )
     thread.start()
 
+def execute_file(cmd):
+    if type(cmd) is list or type(cmd) is tuple:
+        os.chmod(cmd[0], 0777)
+    elif type(cmd) is str:
+        f = shlex.split(cmd)[0]
+        os.chmod(cmd[0], 0777)
+
+    execute(cmd) 
 def send_msg(m=None, *args):
     print_debug("send_msg({}, {})".format(m, args))
     i = 0

