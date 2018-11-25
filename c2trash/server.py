@@ -389,7 +389,9 @@ def iptables_redirect(host):
 
 def get_listener_cmd(target, port):
     cmd = FIN_WAIT.get(target, {}).get("handler", None)
-    if not cmd:
+    if cmd:
+        cmd = plugin._replace_vars(cmd, {"REAL_PORT":port})
+    else:
         cmd = SETTINGS["default_shell_handler"].format(REAL_PORT=port)
         if SETTINGS["default_shell_plugin"] == "True":
             prog = cmd.split(" ")[0]
@@ -426,7 +428,12 @@ def handle_shell(target, catch=False):
     print("Handler: \n{0}\n{1}\n{0}\n".format("-"*(len(handler_cmd) + 3) , handler_cmd))
     new_session(get_session_name(host), window_cmd=handler_cmd)
     FIN_WAIT[target]["cmd"] = res["del"]+res["fix"]
-    time.sleep(2)
+    # Custom handlers (like metasploit) are very slow to start
+    if "handler" in FIN_WAIT[target]:
+        print("Giving custom handler extra time to start...")
+        time.sleep(20)
+    else:
+        time.sleep(2)
     send_shell(target, FIN_WAIT[target]["shell"])
 
 
@@ -477,7 +484,7 @@ def _shell(s, h=None):
             print("Waiting for shell_ACK...")
             FIN_WAIT[t] = {"shell":s}
             if h:
-                FIN_WAIT[t]["handler"] = h
+                FIN_WAIT[t]["handler"] = apply_vars(h)
     else:
         print('Set a target - try "show targets"')
 
@@ -842,6 +849,8 @@ async def get_input():
 # Modify this when adding new plugins
 def load_plugins():
     global metasploit
+    global plugin
+    from plugins import plugin
     from plugins.metasploit import metasploit
     
     # (func_name, function)

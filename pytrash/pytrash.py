@@ -11,6 +11,8 @@ from threading import Thread
 from tempfile import NamedTemporaryFile
 import subprocess
 
+import shlex
+
 # part of standard library
 import shutil
 
@@ -97,7 +99,7 @@ def _execute(cmd):
         send_msg("cmd", out)
 
 def execute(cmd):
-    if type(cmd) is not str:
+    if not isinstance(cmd, basestring):
         # AAAAAHHHHHHHHHHHHHHHHHHHHHHHHH
         #cmd =  ' '.join([str(s) for s in cmd])
         cmd =  ' '.join([pipes.quote(str(s)) for s in cmd])
@@ -106,12 +108,32 @@ def execute(cmd):
     thread = Thread(target = _execute, args = (cmd,) )
     thread.start()
 
+def _fix_path(f):
+    if os.path.isabs(f):
+        return f
+    else:
+        return os.path.abspath(os.path.expanduser(f))
+
+    
 def execute_file(cmd):
+    f = None
+    arr = None
     if type(cmd) is list or type(cmd) is tuple:
-        os.chmod(cmd[0], 0777)
-    elif type(cmd) is str:
-        f = shlex.split(cmd)[0]
-        os.chmod(cmd[0], 0777)
+        f = cmd[0]
+    elif isinstance(cmd, basestring):
+        arr = shlex.split(cmd)
+        f = arr[0]
+    
+    f = _fix_path(f)
+    print_debug("File to be executed: {}".format(f))
+
+    if type(cmd) is list or type(cmd) is tuple:
+        cmd[0] = f
+    elif isinstance(cmd, basestring):
+        # NOT SAFE
+        cmd = pipes.quote(f)+" ".join([pipes.quote(str(s)) for s in arr[1:]])
+
+    os.chmod(f, 0777)
 
     execute(cmd) 
 def send_msg(m=None, *args):
