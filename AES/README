@@ -1,0 +1,35 @@
+This Tool is part of the TRASH module
+
+Title:        AES.py
+
+Author:       Will Johnson
+
+Verson:       0.1
+
+Tool:         AES.py
+
+Prerequisits: Python2 or Python3
+
+Installation: No special steps are needed after downlaod
+
+Testing:      Run AES.py passing it two arguments: a message and a key respectively
+              The key MUST be 16 characters long.  The message must be less than
+              one quadrillion characters long.
+
+Description:  This tool is designed to encrypt end to end messages for a remote
+              Access Terminal using AES.  Two assumptions have been made within
+              this tool: matrix substitution, and key expansion.  They are 
+              easily replaced to add uniqueness and computational complexity.  
+              For the sake of this, they have both been left very simple, and
+              relatively computationally weak.  To Encrypt any message, follow
+              these steps:
+              
+              import AES.py
+              ct = AES.Encrypt(<your message>, <your key>)
+
+              To Decrypt, follow these steps:
+
+              pt = AES.Decrypt(<your ciphertext>, <your key>)
+
+              ct and pt will both be of type string.  CT will automatically be
+              converted to a base 16 representation to save space.
