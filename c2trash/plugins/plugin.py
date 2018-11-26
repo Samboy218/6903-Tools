@@ -1,5 +1,6 @@
 import os
 import shlex
+import shutil
 from . import constants
 
 def upload_file(filename):
@@ -84,6 +85,20 @@ def _drop_tool(payload, handler_cmd, outname=None):
     )
     print(cmds)
     return cmds
+
+def _inject_tool(payload, handler_cmd):
+    cmds = []
+    cmds.append(
+      "_shell {} {}".format(
+        shlex.quote(payload)
+        , shlex.quote(handler_cmd) )
+    )
+    print(cmds)
+    return cmds
+
+def cp_to_static(filename):
+    shutil.copy(filename, constants.SETTINGS["static_dir"])
+    return constants.SETTINGS["STATIC_URL"]+os.path.basename(filename)
 
 def drop_tool(payload, outname=None):
     return _drop_tool(payload, _get_listener_cmd(), outname=None)
