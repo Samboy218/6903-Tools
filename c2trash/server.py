@@ -40,6 +40,7 @@ import shlex
 import pty
 
 import plugins
+from plugins import plugin
 from plugins.constants import *
 
 style = Style.from_dict(style_dict)
@@ -108,7 +109,7 @@ class TrashCollector(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Length', content_len)
             self.end_headers()
-            #print("Serving {} to {}".format(rel_path, self.get_host()))
+            print("Serving {} to {}".format(self.path, self.get_host()))
             shutil.copyfileobj(f, self.wfile)
             f.close()
         except Exception as e:
@@ -386,23 +387,22 @@ def iptables_redirect(host):
     delfix_cmd = iptables.format(CMD="D", src=src, LPORT=SETTINGS["LPORT"], REAL_PORT=real_port, state=state)
     return {"add":add_cmd, "del":del_cmd, "fix":fix_cmd, "delfix":delfix_cmd, "port":real_port}
 
-
-def get_listener_cmd(target, port):
-    cmd = FIN_WAIT.get(target, {}).get("handler", None)
-    if cmd:
-        cmd = plugin._replace_vars(cmd, {"REAL_PORT":port})
-    else:
-        cmd = SETTINGS["default_shell_handler"].format(REAL_PORT=port)
-        if SETTINGS["default_shell_plugin"] == "True":
-            prog = cmd.split(" ")[0]
-            prog = compute_path(cmd.split(" ")[0], SETTINGS["plugins_dir"])
-            if " " in cmd:
-                cmd = "{} {}".format(prog , " ".join(cmd.split(" ")[1:]))
-            else:
-                cmd = prog + cmd
-    print (cmd)
-    return cmd
-    #return "nc -nvlp {REAL_PORT};".format(REAL_PORT=port)
+# Moved to plugins/plugin.py so plugins can use it
+#def get_listener_cmd(target, port):
+#    cmd = FIN_WAIT.get(target, {}).get("handler", None)
+#    if cmd:
+#        cmd = plugin._replace_vars(cmd, {"REAL_PORT":port})
+#    else:
+#        cmd = SETTINGS["default_shell_handler"].format(REAL_PORT=port)
+#        if SETTINGS["default_shell_plugin"] == "True":
+#            prog = cmd.split(" ")[0]
+#            prog = compute_path(cmd.split(" ")[0], SETTINGS["plugins_dir"])
+#            if " " in cmd:
+#                cmd = "{} {}".format(prog , " ".join(cmd.split(" ")[1:]))
+#            else:
+#                cmd = prog + cmd
+#    print (cmd)
+#    return cmd
 
 # eventually: targets will be guaranteed unique, hosts (ip address) might not be
 def target_to_host(target):
@@ -416,7 +416,7 @@ def handle_shell(target, catch=False):
     #global tmux
     res = iptables_redirect(host)
 
-    listener = get_listener_cmd(target, res["port"])
+    listener = plugin.get_listener_cmd(target, res["port"])
     # Race conditions just make your code go faster, right?
     # DANGER: will not work correctly if using "catch"
     handler_cmd = res["add"] + listener
@@ -582,12 +582,18 @@ def do(cmd):
                     print("File ready at {}".format(url))
             
             if SETTINGS["target"]:
-                task(SETTINGS["target"], c, url)
+                if len(arr) > 2:
+                    task(SETTINGS["target"], c, [url, arr[2]])
+                else:
+                    #task(SETTINGS["target"], c, url)
+                    # It's easier to handle on the client side if a filename is always provided
+                    task(SETTINGS["target"], c, [url, bn])
+                    
             elif not force_prompt:
                 print('Set a target - try "show targets"')
         elif c == 'shell':
-            if len(arr) > 1 and os.path.exists(compute_path(arr[1], dir=SETTINGS['shell_dir'])):
-                shell_file = compute_path(arr[1], dir=SETTINGS['shell_dir'])
+            if len(arr) > 1 and os.path.exists(plugin.compute_path(arr[1], dir=SETTINGS['shell_dir'])):
+                shell_file = plugin.compute_path(arr[1], dir=SETTINGS['shell_dir'])
                 print("Reading from {}".format(shell_file))
                 s = get_shell(shell_file)
                 print(s)
@@ -612,7 +618,7 @@ def do(cmd):
             listener_cmd = ""
             if len(arr) > 2:
                 listener_cmd = arr[2]
-            handle_shell(rhost, catch=True, listener_cmd=listener_cmd)
+            handle_shell(rhost, catch=True)
         elif c == 'listen':
             rhost = first([SETTINGS["RHOST"], SETTINGS["target"], "0.0.0.0/0"])
             message = "Please set RHOST for the expected connection [{}]:".format(rhost)
@@ -774,15 +780,15 @@ def get_open_port():
     s.close()
     return port
 
-
-# if the user set an absolute path, use that, otherwise default to relative to install dir
-def compute_path(path, dir=None):
-    if dir is None:
-        dir = os.getcwd()
-
-    if not os.path.isabs(path):
-        path = os.path.join(dir, path)
-    return path
+# Moved to plugins/plugin.py so plugins can use it
+## if the user set an absolute path, use that, otherwise default to relative to install dir
+#def compute_path(path, dir=None):
+#    if dir is None:
+#        dir = os.getcwd()
+#
+#    if not os.path.isabs(path):
+#        path = os.path.join(dir, path)
+#    return path
 
 async def get_input():
     global curr_prompt
@@ -849,14 +855,17 @@ async def get_input():
 # Modify this when adding new plugins
 def load_plugins():
     global metasploit
-    global plugin
-    from plugins import plugin
+    global raidon
+    #global plugin
     from plugins.metasploit import metasploit
+    from plugins.raidon import raidon
     
     # (func_name, function)
     SETTINGS['plugin_cmds'].extend([(c,getattr(globals()['metasploit'], c)) for c in metasploit.get_cmds()])
     print("Loaded {} from metasploit".format(metasploit.get_cmds()))
 
+    SETTINGS['plugin_cmds'].extend([(c,getattr(globals()['raidon'], c)) for c in raidon.get_cmds()])
+    print("Loaded {} from raidon".format(raidon.get_cmds()))
 if __name__=="__main__":
     global loop
 
@@ -872,7 +881,7 @@ if __name__=="__main__":
 
 
     for d in ['static_dir', 'shell_dir', 'plugins_dir', 'deploy_dir', 'payloads_dir', 'handlers_dir' ,'tmux_welcome']:
-        SETTINGS[d] = compute_path(SETTINGS[d])
+        SETTINGS[d] = plugin.compute_path(SETTINGS[d])
 
     try:
         os.makedirs(static_dir)
