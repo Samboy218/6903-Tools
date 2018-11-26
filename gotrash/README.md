@@ -26,6 +26,22 @@ The results are sent back to the C2 server.
 
 Using go, it should be possible to compile goTRASH to a platform-specific binary (limiting dependency problems)
 
+### Supported Commands
+
+```
+Normal Commands:
+
+upload       -  Upload a file to the client
+download     -  Download a file from the client
+execute      -  Run a shell command
+execute_file -  Make a file executable and run
+
+Internal Commands:
+
+send_msg     -  Send a message to the C2 Server
+send_file    -  Send a file to the C2 Server
+```
+
 ### Stability?
 
 Ha, no

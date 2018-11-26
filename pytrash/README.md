@@ -26,6 +26,28 @@ The results are sent back to the C2 server.
 
 Using python, it is easy to exec / eval python code dynamically to inject additional functionality. The `load_module` command can inject new python modules into the pyTRASH client at runtime.
 
+### Supported Commands
+
+```
+Normal Commands:
+
+upload       -  Upload a file to the client
+download     -  Download a file from the client
+execute      -  Run a shell command
+execute_file -  Make a file executable and run
+
+Internal Commands:
+
+send_msg     -  Send a message to the C2 Server
+send_file    -  Send a file to the C2 Server
+
+Special Commands:
+
+load_module  -  exec a python file (from the C2 server) in memory to load new functions
+exec_py      -  exec a python string in memory
+
+```
+
 ### Stability?
 
 Ha, no

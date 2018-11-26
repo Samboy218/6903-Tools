@@ -73,6 +73,38 @@ e.g. You can throw 100 different netcat shells to <c2TRASH>:80 and catch them al
 
 Multiple targets can be managed by c2TRASH at the same time. Commands not recognized by c2TRASH are sent to the currently selected target to be executed. The result is a meterpreter-like shell that is A) encrypted B) beaconing (with a customizable interval that can be changed with `set beacon`)
 
+### Supported Commands
+
+```
+Basic Commands:
+
+set <var> <value>  -    set a configuration value on the the server
+                            Example: set target 192.168.100.1
+show <var>         -    show the current value of a varible
+                            Example: show targets
+options            -    show the options that are safe to set
+switch             -    set target to the most recent target (or the first target)
+host-shell         -    spawn a new tmux session on the c2 host
+clear              -    clear the screen
+upload <file>      -    upload a file to the target
+                            Example: upload /path/to/malware/bad.exe
+download <file>    -    upload a file to the target
+                            Example: download /etc/passwd
+shell <file>       -    send the file (which contains shell commands) to the target to be executed.
+                        also, prepare to catch a shell from the target in response to the commands
+listen             -    interactive command to set up a naive listener
+catch <RHOST> [handler_cmd] -   low level command to set up shell listeners
+attach $# / $#     -    attach to the tmux session $#
+sessions           -    list active tmux sessions
+kill_tmux          -    kill the tmux server
+kill_sessions      -    kill all tmux sessions created during this run
+exit [-y]          -    exit the server safely(?)
+
+Known Plugin Commands:
+drop <msfpc-args>  -  pass MSFPC (metasploit payload creator) the args, upload file
+                      to the target, execute it, and catch the shell with metasploit
+```
+
 
 ### Stability?
 
