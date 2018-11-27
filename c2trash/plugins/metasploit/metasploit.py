@@ -99,8 +99,10 @@ def inject(cmd_str, arg_str):
         print("This method only works for powershell (ps1) payloads")
         return
 
+    arg_str, outname = plugin.get_filename(arg_str)
     payload, handler = _msfpc(cmd_str, arg_str) 
-
+    if outname:
+        payload = _rename(payload, outname)
     url = plugin.cp_to_static(payload)
     print("Stage 2 ready at : {}".format(url))
     handler_cmd = _patch_handler(handler)

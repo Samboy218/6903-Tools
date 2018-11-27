@@ -453,6 +453,7 @@ def send_shell(target, s):
 
 def shell_FIN(target, success):
     if success:
+        time.sleep(5)
         print("Running: {}".format(FIN_WAIT[target]["cmd"]))
         os.system(FIN_WAIT[target]["cmd"])
     else:
