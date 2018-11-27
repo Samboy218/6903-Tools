@@ -67,5 +67,5 @@ def getTrackedFiles(fName=None):
         for item in SETTINGS["trackFileList"][name]["history"]:
             output += repr(item) + "\n"
 
-    send_msg("getTrackedFiles", output)
+    send_msg("getTrackedFiles", output.encode('ascii', 'ignore').decode('ascii'))
     return
