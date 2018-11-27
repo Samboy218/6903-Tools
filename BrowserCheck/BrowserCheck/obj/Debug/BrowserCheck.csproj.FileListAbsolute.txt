@@ -25,3 +25,13 @@ C:\Users\user\Documents\6903-Tools\BrowserCheck\BrowserCheck\obj\Debug\BrowserCh
 C:\Users\user\Documents\6903-Tools\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.csproj.CoreCompileInputs.cache
 C:\Users\user\Documents\6903-Tools\BrowserCheck\BrowserCheck\obj\Debug\SystemCheck.exe
 C:\Users\user\Documents\6903-Tools\BrowserCheck\BrowserCheck\obj\Debug\SystemCheck.pdb
+C:\Users\asdf-bbq\Documents\BrowserCheck\BrowserCheck\bin\Debug\SystemCheck.exe.config
+C:\Users\asdf-bbq\Documents\BrowserCheck\BrowserCheck\bin\Debug\SystemCheck.exe
+C:\Users\asdf-bbq\Documents\BrowserCheck\BrowserCheck\bin\Debug\SystemCheck.pdb
+C:\Users\asdf-bbq\Documents\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.csprojAssemblyReference.cache
+C:\Users\asdf-bbq\Documents\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.Form1.resources
+C:\Users\asdf-bbq\Documents\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.Properties.Resources.resources
+C:\Users\asdf-bbq\Documents\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.csproj.GenerateResource.cache
+C:\Users\asdf-bbq\Documents\BrowserCheck\BrowserCheck\obj\Debug\BrowserCheck.csproj.CoreCompileInputs.cache
+C:\Users\asdf-bbq\Documents\BrowserCheck\BrowserCheck\obj\Debug\SystemCheck.exe
+C:\Users\asdf-bbq\Documents\BrowserCheck\BrowserCheck\obj\Debug\SystemCheck.pdb
