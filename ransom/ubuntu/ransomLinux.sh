@@ -24,7 +24,7 @@ apt install lynx -y 2>&1 >/dev/null
 #GRUB_CMDLINE_LINUX needs to be GRUB_CMDLINE_LINUX="init=/bin/uinit"
 sed -i '/.*GRUB_CMDLINE_LINUX_DEFAULT.*/c\#GRUB_CMDLINE_LINUX_DEFAULT=""' /etc/default/grub
 sed -i '/.*GRUB_CMDLINE_LINUX=.*/c\GRUB_CMDLINE_LINUX="init=/bin/uinit"' /etc/default/grub
-sed -i '/.*GRUB_TIMEOUT_STYLE=.*/c\GRUB_TIMEOUT_STYLE=countdown"' /etc/default/grub
+sed -i '/.*GRUB_TIMEOUT_STYLE=.*/c\GRUB_TIMEOUT_STYLE=countdown' /etc/default/grub
 sed -i '/.*GRUB_CMDLINE_LINUX_DEFAULT.*/c\#GRUB_CMDLINE_LINUX_DEFAULT=""' /etc/default/grub.d/50-curtin-settings.cfg
 grub-mkconfig -o /boot/grub/grub.cfg
 #update-grub
