@@ -1,4 +1,4 @@
-$DefaultUsername = "NewGuest"
+$DefaultUsername = "NewGuest14"
 $DefaultPassword = "P@ssw0rd!"
 $DomainName = "TEAM10"
 $DomainUser = $DomainName + "\" + $DefaultUsername
