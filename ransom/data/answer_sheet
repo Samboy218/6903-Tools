@@ -1,0 +1,286 @@
+----------------------------
+Team: 2
+----------------------------
+www_proof:	a83056b210bae11aa1091b5d719763d5ddc2
+www_key:	a193cc5f5f5699b1893a2ff592e31a71a0aa
+pfsense_proof:	670c4c9528ade3d2c3ea59404a597a640512
+pfsense_key:	292d2aefc02fbadcd4a44a989329aac97d53
+workstation_proof:	015af7e486ab851994351b30bca057e494b3
+workstation_key:	8e691aa4a4bd1c9443d41679af112aea3f43
+dc_proof:	75dbed64c664e5dd1641a28baa973ac67681
+dc_key:	4ff0ecc875f6ec073e1ea23df74e0f8ea4c2
+token_proof:	21a6ef90c35839e771a404742a5f5c433e1d
+token_key:	ac12b5d49484902a79724458dbfad49b96ef
+----------------------------
+Team: 3
+----------------------------
+www_proof:	ca6ddf3818266fc5b5a9b2a42cc55dac7655
+www_key:	57725703034904947d92f8d750b1f297e012
+pfsense_proof:	8b5b2afe09eee5d2b1c4944e1ca2cc69e6cb
+pfsense_key:	9ed1d51d54535f6320e7252e08b3a29b227a
+workstation_proof:	102f8752880aad9b5fc5dd77977ceb915f3e
+workstation_key:	33df14443c079eeb3fce21a14bcb84e4bb38
+dc_proof:	9088c9a71bc29b2dedef046eb67ee33d246f
+dc_key:	d4c232873b66b0d31d649e7ce28cf60873b6
+token_proof:	c7455fba5bd5f83345fe3c84f5098ba9807f
+token_key:	a356f926e1f24ab4434c7dbb71415b4a076f
+----------------------------
+Team: 4
+----------------------------
+www_proof:	ef95844025b68735ad477d95786926fd7cab
+www_key:	01d78521555806fdbd4203b336fecec3e373
+pfsense_proof:	55a80cc1d4db7b2f972eda210da2fa32a36e
+pfsense_key:	019c3044fb2e9edc7e1166c3bb3db931799c
+workstation_proof:	c8576faec5da0dd50d9f80cecd5aba3b379c
+workstation_key:	654efe06ce1f530647730f02eef93681b831
+dc_proof:	09c2380fb572aba79b650cf4d2585d42e1c7
+dc_key:	99e5837e7b295037bf1ef3435160a5b6a7f4
+token_proof:	183b9f6dcd4cd8f73b54e3229150446986ea
+token_key:	472ebe9747fc545a9d2fc4dc082e44f20528
+----------------------------
+Team: 5
+----------------------------
+www_proof:	7e30ca827692e85cf029e19167df423a1123
+www_key:	1c8b50ed0d633d03613af2a3b38727129666
+pfsense_proof:	d79e1cb81f6d6a35e09ecbe95f87995432dc
+pfsense_key:	e33393b3621e4ea7bc04683ef9dc65841601
+workstation_proof:	6f1e2e81d2f9be5721641fc236ec998a76dc
+workstation_key:	bb8822718c788ee5888e06edefe4399c12eb
+dc_proof:	cba0829c7415475ad46aec3de9b08a6b96a0
+dc_key:	22882c80f0e9760b84e4b574fbebb5973f5b
+token_proof:	7f8f9adf9fc259e6ac34db5748d5ab3a1af0
+token_key:	ef736bf76a3739e349a6b3e1457cc3104b04
+----------------------------
+Team: 6
+----------------------------
+www_proof:	3660fb23b184684bc70015624571312967f1
+www_key:	5cc7f5488188bcb5a3edce8a399d70d9dc83
+pfsense_proof:	f62662a2699b28962ae40008b5b99bd93d60
+pfsense_key:	5aa891a79e529573f7016440a7d69cb1094d
+workstation_proof:	edf4cbec33e020b250a2ac40f2b6be75103f
+workstation_key:	caa1f24ec2b33892fa64a5c2751b2d5e14aa
+dc_proof:	260affaf71c5b1ff914511de1df3f62ed6c9
+dc_key:	eb2d4e4c165b89c3fd1471251fee7a3fc6c6
+token_proof:	13b34fefab2e47e67b9d7d914b2d43078f87
+token_key:	4e6210efdafa31c5ad80d1c525b77632743a
+----------------------------
+Team: 7
+----------------------------
+www_proof:	1b3b2cecb659c53639e1e85c0af1913b240d
+www_key:	e2efbd15f67c3c1d7ecdb1fc2c365d4449b6
+pfsense_proof:	4aa20c9ad7afac7ed22f4f3fe58a6686837c
+pfsense_key:	98630ef6bb60b0bbad5ebd559f6ebdc9f65e
+workstation_proof:	d5ab50cde7ca849146eec2d9c476401b9db9
+workstation_key:	a93c0e5fa9baf0a964f2884ce1853698008c
+dc_proof:	3a6f081753d54dad15ef4cd87d97c8c943c5
+dc_key:	0da18e2db916bfe19b1b632ce8557b9e57bb
+token_proof:	7a257cffcc9e1602c7a12ce3878b991a8004
+token_key:	90c2d4ea046bd283f4eee22804959525677c
+----------------------------
+Team: 8
+----------------------------
+www_proof:	19fa61c0a75587973050d99aac218a989550
+www_key:	53a55bf3b984b7a4ddb6c29cf077423cf588
+pfsense_proof:	9df144f8d2fc99e2364e710717df0914fc04
+pfsense_key:	0044cbc74c85cb14a45a6bee20a6c17ec1f6
+workstation_proof:	2dea43a55e447f507e9a583a71d04bdc9c8d
+workstation_key:	af6bae2b4dc8dee7d5ce4b688ab6a83fa243
+dc_proof:	7951dbe8bcc25f5815b11ef221208dd50584
+dc_key:	f601a228e721ea0afa5b875a5debec2bce2e
+token_proof:	86bf3396b8964d0c6d24c993dc24dbaa9c81
+token_key:	d8d9f81d1c778c97a8997e26649aa58ba90f
+----------------------------
+Team: 9
+----------------------------
+www_proof:	a8e4b5ea9cd9d307ef95d052050d54508ebf
+www_key:	e8666e3844d0a051e8ad42fdc64f19ce2fce
+pfsense_proof:	cd28d930650e0cc45465c739354b18a52fb6
+pfsense_key:	ad6708c847da185684c3e89c65b14e6b3131
+workstation_proof:	488a5c06b1dcc8968d2b478e7b19abc6d118
+workstation_key:	3f11594af4bf61442c798dd3a5ee54e32484
+dc_proof:	0b2e3a4d1079ca5f9eb06d71212a706cab8e
+dc_key:	3dbc30a302978cf429b8f27ccfc89ef6c616
+token_proof:	2817566776d21649675bf639fa80f7d63170
+token_key:	cd0e11cd968a1408a54b8f8f2ce39e60c58a
+----------------------------
+Team: 10
+----------------------------
+www_proof:	cd443f84bd28945f53041774e3afe88e4c4b
+www_key:	17e370dd32642e57bab8b417c48eb468a730
+pfsense_proof:	c83d6712e1446b850d4d2267c02dc31c3336
+pfsense_key:	fd2c670bae9b177de3d6f5cff184d5a5090a
+workstation_proof:	2465b18ec3c4dc0a4a4e63bce8ccaaab1f5a
+workstation_key:	8718677b528b685eec3c2a8a58cc09d5f281
+dc_proof:	8b71042b1b6d2310f0dc29bc2365da1beb28
+dc_key:	bb280b2d8a6f897c10c04b2114a4f2ab6e7c
+token_proof:	06d48d6baade763b23eb9138c82356f5ee04
+token_key:	ffb402d190e1a15128629a7b98373749848e
+----------------------------
+Team: 11
+----------------------------
+www_proof:	62fa203608fe19caf898647574bfee3e01f7
+www_key:	1faeaeaca53c88301d86b2034c35d0b44202
+pfsense_proof:	c3fe18b12f0b599fe6e944645fe96bd7d3c1
+pfsense_key:	db92422b2cf4ce8cb4d6761697171b95b7fa
+workstation_proof:	7d3a364da27ea0b85fb9d25f2697c1c5e308
+workstation_key:	5691ecfb20719380f32e6aeb865447860924
+dc_proof:	798cdabda25e5930beccfe081c412f48e875
+dc_key:	a58384d5636f0819e40f84d05e841814e08a
+token_proof:	581e772398f94852b3fd242cf1b14aebe5ce
+token_key:	4a8aecc66b92f4270a0ea6eff3d52e8acfc5
+----------------------------
+Team: 12
+----------------------------
+www_proof:	98f4c90beaa1e566c61048000007b003e100
+www_key:	9059d64cb8da8c41faebba39a0ad73b68f13
+pfsense_proof:	6bdf2e69ac228696cbd14cf7b8eb285800e5
+pfsense_key:	122b06da9a8080c4ce312a1d68f7035c9a58
+workstation_proof:	e900da7cb240a497cd0808832b6c54978cf5
+workstation_key:	c76bd859b21e8c19710ee0627760664fe48b
+dc_proof:	c59eaa3e09036e2590e5fc538604ee9984a7
+dc_key:	a0a436bd93e24cf8352181f90bf5de55d590
+token_proof:	3efe8a0e16da604da700f02c6ea416799700
+token_key:	1427b25fa3f3757f1a9a919fe865765ba8cb
+----------------------------
+Team: 13
+----------------------------
+www_proof:	8bbdac55b46451a36f0eb41e23f058333fce
+www_key:	b91b38d7bb0acccb655b33eb74f8898ae4e4
+pfsense_proof:	1af433c442067717b6f59daceb96609ed4d2
+pfsense_key:	6412f1a2eb57e1fc2d8c7a33e14db4c1e0e0
+workstation_proof:	556067586fcb760516b9c0f543a9a8be51b1
+workstation_key:	325dafc0586eca3a553ab91a62ed830d7152
+dc_proof:	b23cdedcce0d136ecf4278807d90835be462
+dc_key:	6aa146df2b5de6f1e96936c1c741e8a9ae92
+token_proof:	46af827d04ab98494f691a59c1c03ad0d798
+token_key:	95a0a5e0da83f77409eaedfa0e81d1a26f30
+----------------------------
+Team: 14
+----------------------------
+www_proof:	8b3f6b78b00800e51b3f1a5e4cfd9ce9aa8e
+www_key:	d05f4d3620397de0e806ed536da7aa00b4a8
+pfsense_proof:	eac7d3c012839e5d568c201d03b4601495fb
+pfsense_key:	3859793567a5dfd0e007fe35b100aed46c1e
+workstation_proof:	2058a239ce39a6e510b2d178c1989d7d645a
+workstation_key:	f2e8539509a2257afcf3493fad3e5a67fb8c
+dc_proof:	fdcc3a756946b8607d7a3ded394b0568d9a4
+dc_key:	d3bc319263a9c9dd87af4edb39997a032819
+token_proof:	19450624f4ba14eb13b41f106cdc967b980e
+token_key:	5f737c55b190a97d992182e0ccc5c86f8601
+----------------------------
+Team: 15
+----------------------------
+www_proof:	6bd871bd535e06293df930b7a0d10525bbd6
+www_key:	59b71e7a182fb9942f8a8a0d4378911d5894
+pfsense_proof:	beee88d6de6fde1f0e110d2f7ab10c8e0821
+pfsense_key:	abb4b52ce4784cff2f8ba5e2e373273d555a
+workstation_proof:	99cc5b1e1c1ee4e1486522375ab35fd2497d
+workstation_key:	8170848762034a974c40e08c188f67eff8b7
+dc_proof:	0c3ab2c60ac41a16c44bcdf3711e5fc2fadf
+dc_key:	06910d59c2d5577d3eca1ea886667eb08262
+token_proof:	ec360877b8b3744d10558b51781367b98a53
+token_key:	59716753d7bf54757af0143f19dbddece9cb
+----------------------------
+Team: 16
+----------------------------
+www_proof:	428f7c4311f2c1afd0e3346a2ae9eb13c7f0
+www_key:	fc083e8ec299164d5905f75a464e4c2f4d37
+pfsense_proof:	a7d191390115acddf977e8bbad2c51a79271
+pfsense_key:	b5aaff37d5f576e3fb6b4685801d36b652d5
+workstation_proof:	211229d6baae01534275682b35fcdb971ed9
+workstation_key:	407976525d8107bd353ab3e8d1de6efa0b92
+dc_proof:	fef699c1e20b27443a44a12d45df1411749f
+dc_key:	43fb7bc88b0f79a8350deb89a0b35358978e
+token_proof:	687dbe33476fc043f2185d4cbfdc88eb460b
+token_key:	0d6ba8c5acf55a0c21ef6f401a3cc0fb8bd3
+----------------------------
+Team: 17
+----------------------------
+www_proof:	7f3e7c9f9b7e269db646f644d514df8dad82
+www_key:	fc0aebe40baa096fe90651d72a4f366599db
+pfsense_proof:	a38835e4e52edcb1bda87533c12acbf4ed26
+pfsense_key:	6388bb487e77f312c759483198cc243e0ecf
+workstation_proof:	a757e6b14c5d641608367d3e2b11fd9b3e63
+workstation_key:	e0e3ecff8e6c1b13d44e3d39559713881eeb
+dc_proof:	6d8a4ff0476d068a1fd84aa58ba71197b3f2
+dc_key:	647910b406fb8a8a7cbb452842790bcb1063
+token_proof:	0630b334cbc530715fd90013a41c8976e38a
+token_key:	9a38b78851cfd837934b5fd922faea7a6bea
+----------------------------
+Team: 18
+----------------------------
+www_proof:	f1476cc80c49eba46c7c1a40ba875a3b0368
+www_key:	cef95c187c416f700047441bd55f49ffa6e4
+pfsense_proof:	18ae73a5d440b8199dbfbb7447fb5d761de1
+pfsense_key:	14502946a276366cd7f873e12d2c7b673137
+workstation_proof:	b6083ea9c8a066ee66fa49d97980cb4ce085
+workstation_key:	2aa1ff4b5a18ba2b209558846be42c858f5c
+dc_proof:	29257685b0b94a7130cc91c71bd9b6ad6a25
+dc_key:	9c371f1c3001d865fafa4ff7025e0c69628d
+token_proof:	d06df574a72d67b592f1b35237695e816f86
+token_key:	74be3b7c1dc7367827dc940cf36ba693de94
+----------------------------
+Team: 19
+----------------------------
+www_proof:	9f1327935a99ee2b84a91efd7dd8a0763fe1
+www_key:	0e01133b82dd33eb86a7108efba4d20d6560
+pfsense_proof:	cb8401e131b9896b83c627d19b6006126f25
+pfsense_key:	1f9c7959af2869d31c931406fcc6f0576465
+workstation_proof:	826dbe7f63e7de1f68ba8a8b0a2227165ac1
+workstation_key:	1dadc62c14249a34399eac43e885110e8403
+dc_proof:	263ca51c1d045e793da071b3db856e1c5397
+dc_key:	90defff5a7718f3fd601554a9d715edc9a28
+token_proof:	adf45ec6469567ffc5e12c6a38cbeded68d3
+token_key:	e6ba9b95fbaad5fca5011d2e4424550e5998
+----------------------------
+Team: 20
+----------------------------
+www_proof:	9d64a9024f9fc315df5d9904bfa5072e1745
+www_key:	9099ffc70a2541660505d8cbd4ce86bc2f82
+pfsense_proof:	a2155ac4a4cc8530668c1e7e94cda45c9ff8
+pfsense_key:	9d6e4db1835d291187b01c0b91b97431e4b5
+workstation_proof:	243a23fe3fecbc569000b39a615a3e6ba4c7
+workstation_key:	33e2348bc7b5fc9faba9054a7a2f49b99bc4
+dc_proof:	fb9adb286c66fc99e65f0d2dc18ed9afb09e
+dc_key:	021a7500a889ad2c2bd2fa6518785d422ef6
+token_proof:	a317f7714968290606e756a45757c4254234
+token_key:	448e16ab478f49dd2ef8c800e3ebb0274cce
+----------------------------
+Team: 21
+----------------------------
+www_proof:	fd983c00bbe55e6cf6688f42544d855c9270
+www_key:	58027c8e1aa99dcb6ee8f90af13940286bc7
+pfsense_proof:	1bf58b949a9e383bc60f57afda70692de3bd
+pfsense_key:	6a497af552409ed457191a9d446fe2ec56d4
+workstation_proof:	4f004fe8b3eca188e7ef83742651c65dea03
+workstation_key:	2c1893ba900a32707521a338ef48f58002d8
+dc_proof:	03bdad844ac85436debac48f320357d1b0b6
+dc_key:	0aaaf218b65042e7384189611513f46cad9b
+token_proof:	74deded074b26bcbaa9423f48c8fdea4b89d
+token_key:	70c3272771d624c56fc2fbbfc2b04e8ebdee
+----------------------------
+Team: 22
+----------------------------
+www_proof:	0430a5f7893ccb1f0650874f8e25e906c084
+www_key:	4c56f639de637a1c72331a9527ebfe78842c
+pfsense_proof:	980d4669edbce4a1207e9f70dff140972502
+pfsense_key:	6c03d0d6b754b944705e28ad7a7c15780bd6
+workstation_proof:	7b5c4ea6d2dc01516eea85dbbffc8a6e5f57
+workstation_key:	7bc3ef76c18780e9b59b1ee9b30e12df61f1
+dc_proof:	af34a94cbbe76ba1aa8019dca812ca8931c8
+dc_key:	1133ccec1f07e853b25d26269aa04d3cf1b9
+token_proof:	30239768a70dc78b9c2e9626b9a7cbd802c2
+token_key:	35621bbe890eacc4f27555fb19daccc0aab6
+----------------------------
+Team: 23
+----------------------------
+www_proof:	7f848a0667e9945fc4b5768ea2b6622cfd8d
+www_key:	0f6b03355a62ea48df08daf57b2dfb190b70
+pfsense_proof:	5f0dce7109f6f45e0f0cad216a8790052b41
+pfsense_key:	f967ca147df007973535e2b4f93c71639439
+workstation_proof:	6093c76def3bf8e7ef8d5c545765dd8a41ff
+workstation_key:	a53400f925e3f14c790fd9a1c88a13b00f5d
+dc_proof:	4f6325a983ff131da55c77ff20de32ffd9fb
+dc_key:	9385f2a0f217cce9397119cf626f315f395c
+token_proof:	86bc818f68348862484f444d1bfe5400f4cb
+token_key:	640e9119d8e06371c204ddf7e4f8f47444c5
